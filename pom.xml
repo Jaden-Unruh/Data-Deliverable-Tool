@@ -33,7 +33,7 @@
   				<configuration>
   					<archive>
   						<manifest>
-  							<mainClass>us.akana.tools.AkitaBoxPrep.Main</mainClass>
+  							<mainClass>us.akana.tools.dataDeliverableTool.Main</mainClass>
   						</manifest>
   					</archive>
   					<descriptorRefs>
