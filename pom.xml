@@ -3,7 +3,37 @@
   <groupId>us.akana.tools</groupId>
   <artifactId>data-deliverable-tool</artifactId>
   <version>0.0.1</version>
+  <packaging>jar</packaging>
   <name>Data Deliverable Tool</name>
+  <description>
+  	A tool for Akana to process data deliverable files, comparing to content of a supplied workbook to add any missing content and update existing content.
+  </description>
+  <url>https://github.com/Jaden-Unruh/Data-Deliverable-Tool</url>
+  <inceptionYear>2024</inceptionYear>
+  <organization>
+  	<name>Akana</name>
+  	<url>https://akana.us/</url>
+  </organization>
+  <licenses>
+  	<license>
+  		<name>GPL-3.0-or-later</name>
+  		<url>https://www.gnu.org/licenses/gpl-3.0.txt</url>
+  		<distribution>manual</distribution>
+  	</license>
+  </licenses>
+  <developers>
+  	<developer>
+  		<id>Jaden.Unruh</id>
+  		<name>Jaden Unruh</name>
+  		<email>Jaden.Unruh@akana.us</email>
+  		<organization>Akana</organization>
+  		<organizationUrl>https://akana.us/</organizationUrl>
+  		<roles>
+	  		<role>Developer</role>
+	  	</roles>
+	  	<timezone>America/Los_Angeles</timezone>
+  	</developer>
+  </developers>
   
   <properties>
   	<maven.compiler.source>14</maven.compiler.source>
