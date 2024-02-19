@@ -312,10 +312,28 @@ public class Main {
 		}
 		
 		Iterator<Integer> it = rowsToCheck.iterator();	// Item only on worksheet, not on delivarable TODO: duplicate rows if Maximo ID blank
+		int counter = 1;
 		while (it.hasNext()) {
+			int currentRow = inventorySheet.getPhysicalNumberOfRows();
 			Integer i = it.next();
-			XSSFRow newRow = inventorySheet.getRow(inventorySheet.getPhysicalNumberOfRows());
+			XSSFRow newRow = inventorySheet.getRow(currentRow);
+			XSSFRow prevRow = inventorySheet.getRow(currentRow - 1);
+			XSSFRow workbookRow = workbookSheet.getRow(i);
 			
+			String assetName = workbookRow.getCell(7).toString();
+			String buildingName = workbookRow.getCell(3).toString();
+			
+			setCell(prevRow, 0, newRow, 0);
+			newRow.getCell(1).setCellValue(Integer.toString(counter++) + "NEW");
+			newRow.getCell(2).setCellValue(JOptionPane.showInputDialog(window, String.format("What is the location ID for the asset titled %s in the building titled %s?", assetName, buildingName), JOptionPane.QUESTION_MESSAGE));
+			newRow.getCell(4).setCellValue(assetName);
+			newRow.getCell(5).setCellValue("OPERATING");
+			newRow.getCell(6).setCellValue(""); //TODO: where does usage come from?
+			newRow.getCell(7).setCellValue("FACILITIES");
+			setCell(prevRow, 8, newRow, 8);
+			setCell(workbookRow, 46, newRow, 9);
+			newRow.getCell(12).setCellValue(newRow.getCell(0).toString().substring(3)); //TODO confirm this is an appropriate way to get inspection date
+			setCell(workbookRow, 13, newRow, 15);
 		}
 	}
 
