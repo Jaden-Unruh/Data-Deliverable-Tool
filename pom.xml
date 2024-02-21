@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>us.akana.tools</groupId>
   <artifactId>data-deliverable-tool</artifactId>
-  <version>0.0.1</version>
+  <version>0.0.2</version>
   <packaging>jar</packaging>
   <name>Data Deliverable Tool</name>
   <description>
@@ -61,9 +61,10 @@
   				<artifactId>maven-assembly-plugin</artifactId>
   				<version>3.6.0</version>
   				<configuration>
+  					<appendAssemblyId>false</appendAssemblyId>
   					<archive>
   						<manifest>
-  							<mainClass>us.akana.tools.dataDeliverableTool.Main</mainClass>
+  							<mainClass>dataDeliverableTool.Main</mainClass>
   						</manifest>
   					</archive>
   					<descriptorRefs>

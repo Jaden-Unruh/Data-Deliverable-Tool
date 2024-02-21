@@ -144,9 +144,11 @@ The [github repository](https://github.com/Jaden-Unruh/Data-Deliverable-Tool) ha
 
 The main `.jar` that you downloaded to run the project is just that - the project itself, all bundled up neatly and easy to use.
 
-The two files title README (`.md` and `.html`) are this long text document - the `.md` file is my preferred method for writing these sorts of things, but if you can't open that one the `.html` should do just fine, and opens in any browser.
+The two files titled README (`.md` and `.html`) are this long text document - the `.md` file is my preferred method for writing these sorts of things, but if you can't open that one the `.html` should do just fine, and opens in any browser. It's also rendered nicely below the file list in the github, so you don't have to download it.
 
 `LICENSE` is the legal protections for this project, it's a strong copyleft license. See [License](#license) below for more.
+
+`doc` is detailed documentation of my java code using [javadoc](https://en.wikipedia.org/wiki/Javadoc). You can download the folder and open `doc\index.html`, or, if you don't want to download it, [this link](https://html-preview.github.io/?url=https://raw.githubusercontent.com/Jaden-Unruh/Data-Deliverable-Tool/master/doc/dataDeliverableTool/package-summary.html) will take you to a tool that allows you to view the html files without downloading.
 
 Everything else - `.settings`, `src`, `target`, `.classpath`, `.project`, and `pom.xml` are the project files, included so anyone can view and edit my code if desired. My advice would be to download the whole project (clone) and open it with an IDE - I use [Eclipse](https://eclipseide.org/).
 
