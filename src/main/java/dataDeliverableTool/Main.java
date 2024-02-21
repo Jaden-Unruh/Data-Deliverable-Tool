@@ -37,36 +37,78 @@ import javax.swing.JTextArea;
 import javax.swing.SwingWorker;
 import javax.swing.WindowConstants;
 
+import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+/**
+ * Possible values for infoText element within the Window of Data Deliverable {@link Main#window}
+ * @author Jaden Unruh
+ * @since 0.0.1
+ */
 enum InfoText {
 	ERROR, SELECT_PROMPT, DESKTOP, LOAD_SHEETS, INIT
 }
 
+/**
+ * Primary class for Data Deliverable Tool.
+ * @see <a href="https://github.com/Jaden-Unruh/data-deliverable-tool/">Data Deliverable Github</a>
+ * @author Jaden Unruh
+ * @since 0.0.1
+ */
 public class Main {
 
+	/**
+	 * Primary GUI window
+	 */
 	static JFrame window;
 
+	/**
+	 * Files currently selected - updates every time the user presses 'ok' within a file selection prompt
+	 */
 	static File[] selectedFiles = new File[2];
 
+	/**
+	 * Info bar within {@link #window}
+	 * @see #infoText
+	 */
 	static JLabel info = new JLabel();
 
+	/**
+	 * Large objects representing the selected files - only update when the user selects 'run'
+	 */
 	static XSSFWorkbook deliverableBook, workbookBook;
 
+	/**
+	 * Current state of {@link #info}
+	 * @see #getInfoText()
+	 */
 	static InfoText infoText;
 
+	/**
+	 * Writer for generated info text file - only defined in {@link #init()}
+	 */
 	static FileWriter writeToInfo;
 
+	/**
+	 * Entry method for {@link Main}
+	 * @param args unused
+	 */
 	public static void main(String[] args) {
 		openWindow();
 	}
 
+	/**
+	 * Regex to pull old and new names from a line of <a href="file:/../resources/newNames.dat">newNames.dat</a>
+	 */
 	static final Pattern RENAME_LINE_PATTERN = Pattern.compile("(.+),(.+)");
-
+	/**
+	 * Initializes Data Deliverable tool - creates info file, pulls sheet renaming info
+	 * @throws IOException if creation of info file (and/or writer) fails, or grabbing sheet renaming .dat file fails
+	 */
 	private static void init() throws IOException {
 		updateInfo(InfoText.INIT);
 		try (InputStream in = Main.class.getResourceAsStream("/NewNames.dat");
@@ -90,7 +132,11 @@ public class Main {
 				"Info log for deliverable tool run %s\nBelow will be any potential errors encountered while running the tool. If it's empty, no errors were reported.\n",
 				dateTime));
 	}
-
+	
+	/**
+	 * Safely saves and closes info file writer and spreadsheet files
+	 * @throws IOException if saving/closing fails
+	 */
 	private static void terminate() throws IOException {
 		writeToInfo.close();
 		FileOutputStream out = new FileOutputStream(selectedFiles[0]);
@@ -99,7 +145,10 @@ public class Main {
 		deliverableBook.close();
 		workbookBook.close();
 	}
-
+	
+	/**
+	 * Opens and sets up the main window for the data deliverable tool
+	 */
 	private static void openWindow() {
 		window = new JFrame("Data Deliverable Tool");
 		window.setLayout(new GridBagLayout());
@@ -206,13 +255,22 @@ public class Main {
 		window.pack();
 		window.setVisible(true);
 	}
-
+	
+	/**
+	 * Loads the files into program-accessible format
+	 * @throws FileNotFoundException if Files are not found - shouldn't happen, they're from file selection windows
+	 * @throws IOException if there's an error reading the files
+	 */
 	private static void loadSheets() throws FileNotFoundException, IOException {
 		updateInfo(InfoText.LOAD_SHEETS);
 		deliverableBook = new XSSFWorkbook(new FileInputStream(selectedFiles[0]));
 		workbookBook = new XSSFWorkbook(new FileInputStream(selectedFiles[1]));
 	}
 
+	/**
+	 * Runs building validation section of program - see github readme for details
+	 * @throws IOException if there's an error writing to the info file - only writes if location number isn't found in workbook
+	 */
 	private static void buildingValidation() throws IOException {
 		XSSFSheet buildingSheet = deliverableBook.getSheet("Building Validation");
 
@@ -247,7 +305,11 @@ public class Main {
 				writeToInfo.append(String.format("Location number not found in workbook: %s\n", location));
 		}
 	}
-
+	
+	/**
+	 * Runs tower validation section of program - see github readme for details
+	 * @throws IOException if there's an error writing to info file - only writes if location number not found in workbook
+	 */
 	private static void towerValidation() throws IOException {
 		XSSFSheet towerSheet = deliverableBook.getSheet("Tower Validation");
 
@@ -264,6 +326,10 @@ public class Main {
 		}
 	}
 
+	/**
+	 * Runs tower validation section of program - see github readme for details
+	 * @throws IOException if there's an error writing to info file - only writes if location number not found in workbook
+	 */
 	private static void groundsValidation() throws IOException {
 		XSSFSheet groundsSheet = deliverableBook.getSheet("Grounds Validation");
 
@@ -279,8 +345,12 @@ public class Main {
 				writeToInfo.append(String.format("Location number not found in workbook: %s\n", location));
 		}
 	}
-
-	private static void siteInventory() throws IOException {
+	
+	//TODO tank validation?
+	/**
+	 * Runs site inventory section of the program - see github readme for details
+	 */
+	private static void siteInventory() {
 		XSSFSheet inventorySheet = deliverableBook.getSheet("Asset Validation");
 		XSSFSheet workbookSheet = workbookBook.getSheet("Site Inventory");
 
@@ -336,12 +406,27 @@ public class Main {
 			setCell(workbookRow, 13, newRow, 15);
 		}
 	}
-
+	
+	/**
+	 * Sets the specified cell on a given row to the contents of the specified cell on another given row
+	 * @param readRow the row to read from
+	 * @param readCol the index of cell of readRow to read from
+	 * @param writeRow the row to write to
+	 * @param writeCol the index of cell on writeRow to write to
+	 */
 	private static void setCell(XSSFRow readRow, int readCol, XSSFRow writeRow, int writeCol) {
 		writeRow.getCell(writeCol).setCellValue(readRow.getCell(readCol).toString()); // TODO something if cell isn't
 																						// empty/doesn't match new value
 	}
-
+	
+	/**
+	 * Gets the row from a given sheet that contains the specified String in its cell with specified index
+	 * @param sheet the sheet to read from
+	 * @param value the String to find
+	 * @param matchCol the index of the cell within the returned Row
+	 * @return the row that contains the given string in the specified cell
+	 * @see #getCorrespondingRowNumber(XSSFSheet, String, int)
+	 */
 	private static XSSFRow getCorrespondingRow(XSSFSheet sheet, String value, int matchCol) {
 		int num = getCorrespondingRowNumber(sheet, value, matchCol);
 		if (num > -1)
@@ -349,6 +434,14 @@ public class Main {
 		return null;
 	}
 
+	/**
+	 * Gets the index of the row from a given sheet that contains the specified String in its cell with specified index
+	 * @param sheet the sheet to read from
+	 * @param value the String to find
+	 * @param matchCol the indesx of the cell within the returned Row
+	 * @return the index of the row that contains the given string in the specified cell
+	 * @see #getCorrespondingRow(XSSFSheet, String, int)
+	 */
 	private static int getCorrespondingRowNumber(XSSFSheet sheet, String value, int matchCol) {
 		int rows = sheet.getPhysicalNumberOfRows();
 		for (int i = 0; i < rows; i++)
@@ -357,8 +450,14 @@ public class Main {
 		return -1;
 	}
 
+	/**
+	 * Mapping of old to new sheet names
+	 */
 	private final static HashMap<String, String> nameMap = new HashMap<String, String>();
-
+	/**
+	 * Renames sheets according to the specified mapping - found in file <a href="file:/../resources/newNames.dat">newNames.dat</a>
+	 * @throws IOException if there's an error opening the .dat file
+	 */
 	private static void renameSheets() throws IOException {
 		for (int i = 0; i < deliverableBook.getNumberOfSheets(); i++) {
 			String sheetName = deliverableBook.getSheetName(i);
@@ -368,23 +467,42 @@ public class Main {
 				writeToInfo.append(String.format("Sheet name not found in map: %s\n", sheetName));
 		}
 	}
-
+	
+	/**
+	 * Checks if the user has selected two valid `.xlsx` files
+	 * @return true if the user has selected valid files
+	 */
 	private static boolean checkCorrectSelections() {
-		// TODO
-		return true;
+		return FileNameUtils.getExtension(selectedFiles[0].getName()).equals("xlsx") && FileNameUtils.getExtension(selectedFiles[1].getName()).equals("xlsx");
 	}
-
+	
+	/**
+	 * Creates a GridBagConstraints object with the given attributes, and all other values set to defaults
+	 * @param x horizontal location in grid bag
+	 * @param y vertical location in grid bag
+	 * @param width columns spanned in grid bag
+	 * @param height rows spanned in grid bag
+	 * @return the new GridBagConstraints object
+	 */
 	private static GridBagConstraints simpleConstraints(int x, int y, int width, int height) {
 		return new GridBagConstraints(x, y, width, height, 0, 0, GridBagConstraints.CENTER, 0, new Insets(0, 0, 0, 0),
 				0, 0);
 	}
-
+	
+	/**
+	 * Updates info to the specified enum value
+	 * @param text the value to set to
+	 */
 	static void updateInfo(InfoText text) {
 		infoText = text;
 		info.setText(getInfoText());
 		window.pack();
 	}
 
+	/**
+	 * Gets the String corresponding to the current value of infoText
+	 * @return the corresponding String to infoTexts value
+	 */
 	static String getInfoText() {
 		switch (infoText) {
 		case ERROR:
