@@ -1,6 +1,5 @@
 package dataDeliverableTool;
 
-import java.awt.Color;
 import java.awt.Desktop;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -38,8 +37,10 @@ import javax.swing.SwingWorker;
 import javax.swing.WindowConstants;
 
 import org.apache.commons.compress.utils.FileNameUtils;
-import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -52,7 +53,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  * @since 0.0.1
  */
 enum InfoText {
-	ERROR, SELECT_PROMPT, DESKTOP, LOAD_SHEETS, INIT, CLOSING, BUILD_VALID, TOWER_VALID, GROUNDS_VALID, SITE_INV
+	ERROR, SELECT_PROMPT, DESKTOP, LOAD_SHEETS, INIT, CLOSING, BUILD_VALID, TOWER_VALID, GROUNDS_VALID, SITE_INV, DONE
 }
 
 /**
@@ -64,6 +65,8 @@ enum InfoText {
  * @since 0.0.1
  */
 public class Main {
+	
+	static final DataFormatter FORMATTER = new DataFormatter();
 
 	/**
 	 * Primary GUI window
@@ -82,6 +85,16 @@ public class Main {
 	 * @see #infoText
 	 */
 	static JLabel info = new JLabel();
+	
+	/**
+	 * Regular expression for location number: A##-## where A can be any capital letter, # can be any digit
+	 */
+	static final String LOCATION_REGEX = "^[A-Z]\\d{2}-\\d{2}$"; //$NON-NLS-1$
+	
+	/**
+	 * Input field for location ID
+	 */
+	static EntryField locationEntry;
 
 	/**
 	 * Large objects representing the selected files - only update when the user
@@ -114,7 +127,7 @@ public class Main {
 	 * Regex to pull old and new names from a line of
 	 * <a href="file:/../resources/newNames.dat">newNames.dat</a>
 	 */
-	static final Pattern RENAME_LINE_PATTERN = Pattern.compile("(.+),(.+)");
+	static final Pattern RENAME_LINE_PATTERN = Pattern.compile("(.+),(.+)"); //$NON-NLS-1$
 
 	/**
 	 * Initializes Data Deliverable tool - creates info file, pulls sheet renaming
@@ -125,7 +138,7 @@ public class Main {
 	 */
 	private static void init() throws IOException {
 		updateInfo(InfoText.INIT);
-		try (InputStream in = Main.class.getResourceAsStream("/NewNames.dat");
+		try (InputStream in = Main.class.getResourceAsStream("newNames.dat"); //$NON-NLS-1$
 				BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
 			String[] lines = reader.lines().toArray(String[]::new);
 			for (String line : lines) {
@@ -137,13 +150,12 @@ public class Main {
 			e.printStackTrace();
 		}
 
-		String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss.SSS"));
+		String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss.SSS")); //$NON-NLS-1$
 		File infoFile = new File(
 				String.format(Messages.getString("Main.infoFile.name"), selectedFiles[0].getParent(), dateTime)); //$NON-NLS-1$
 		infoFile.createNewFile();
 		writeToInfo = new FileWriter(infoFile);
-		writeToInfo.append(String.format(
-				Messages.getString("Main.infoFile.header"), //$NON-NLS-1$
+		writeToInfo.append(String.format(Messages.getString("Main.infoFile.header"), //$NON-NLS-1$
 				dateTime));
 	}
 
@@ -177,17 +189,22 @@ public class Main {
 		window.add(new JLabel(Messages.getString("Main.window.workbookFilePrompt")), simpleConstraints(0, 1, 2, 1)); //$NON-NLS-1$
 		JButton selectWorkbook = new SelectButton(1);
 		window.add(selectWorkbook, simpleConstraints(2, 1, 1, 1));
+		
+		window.add(new JLabel(Messages.getString("Main.window.locIDPrompt")), simpleConstraints(0, 2, 2, 1));
+		
+		locationEntry = new EntryField(LOCATION_REGEX, Messages.getString("Main.window.locIDDefText")); //$NON-NLS-1$
+		window.add(locationEntry, simpleConstraints(2, 2, 1, 1));
 
-		window.add(info, simpleConstraints(0, 2, 3, 1));
+		window.add(info, simpleConstraints(0, 3, 3, 1));
 
 		JButton close = new JButton(Messages.getString("Main.window.close")); //$NON-NLS-1$
-		window.add(close, simpleConstraints(0, 3, 1, 1));
+		window.add(close, simpleConstraints(0, 4, 1, 1));
 
 		JButton help = new JButton(Messages.getString("Main.window.help")); //$NON-NLS-1$
-		window.add(help, simpleConstraints(1, 3, 1, 1));
+		window.add(help, simpleConstraints(1, 4, 1, 1));
 
 		final JButton run = new JButton(Messages.getString("Main.window.run")); //$NON-NLS-1$
-		window.add(run, simpleConstraints(2, 3, 1, 1));
+		window.add(run, simpleConstraints(2, 4, 1, 1));
 
 		close.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -197,15 +214,15 @@ public class Main {
 
 		help.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				String[] choices = { Messages.getString("Main.window.help.close"), Messages.getString("Main.window.help.github") }; //$NON-NLS-1$ //$NON-NLS-2$
-				if (JOptionPane.showOptionDialog(window,
-						Messages.getString("Main.window.help.text"), //$NON-NLS-1$
-						Messages.getString("Main.window.help.title"), JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, choices, //$NON-NLS-1$
-						choices[0]) == 1) {
+				String[] choices = { Messages.getString("Main.window.help.close"), //$NON-NLS-1$
+						Messages.getString("Main.window.help.github") }; //$NON-NLS-1$
+				if (JOptionPane.showOptionDialog(window, Messages.getString("Main.window.help.text"), //$NON-NLS-1$
+						Messages.getString("Main.window.help.title"), JOptionPane.DEFAULT_OPTION, //$NON-NLS-1$
+						JOptionPane.INFORMATION_MESSAGE, null, choices, choices[0]) == 1) {
 					if (Desktop.isDesktopSupported())
 						try {
 							Desktop.getDesktop()
-									.browse(new URL("https://github.com/Jaden-Unruh/Data-Deliverable-Tool").toURI());
+									.browse(new URL("https://github.com/Jaden-Unruh/Data-Deliverable-Tool").toURI()); //$NON-NLS-1$
 						} catch (Exception e1) {
 							updateInfo(InfoText.DESKTOP);
 						}
@@ -223,13 +240,15 @@ public class Main {
 						protected Boolean doInBackground() throws Exception {
 
 							init();
-							renameSheets();
 							loadSheets();
+							renameSheets();
 							buildingValidation();
 							towerValidation();
 							groundsValidation();
 							siteInventory();
 							terminate();
+							
+							updateInfo(InfoText.DONE);
 
 							run.setEnabled(true);
 							return true;
@@ -243,19 +262,22 @@ public class Main {
 								e.printStackTrace();
 							} catch (ExecutionException e) {
 								e.getCause().printStackTrace();
-								String[] choices = { Messages.getString("Main.window.error.close"), Messages.getString("Main.window.error.more") }; //$NON-NLS-1$ //$NON-NLS-2$
+								String[] choices = { Messages.getString("Main.window.error.close"), //$NON-NLS-1$
+										Messages.getString("Main.window.error.more") }; //$NON-NLS-1$
 								updateInfo(InfoText.ERROR);
 								run.setEnabled(true);
 								if (JOptionPane.showOptionDialog(window,
-										String.format(Messages.getString("Main.window.error.header"), e.getCause().toString()), "Error", //$NON-NLS-1$
-										JOptionPane.DEFAULT_OPTION, JOptionPane.ERROR_MESSAGE, null, choices,
+										String.format(Messages.getString("Main.window.error.header"), //$NON-NLS-1$
+												e.getCause().toString()),
+										"Error", JOptionPane.DEFAULT_OPTION, JOptionPane.ERROR_MESSAGE, null, choices, //$NON-NLS-1$
 										choices[0]) == 1) {
 									StringWriter sw = new StringWriter();
 									e.printStackTrace(new PrintWriter(sw));
 									JTextArea jta = new JTextArea(25, 50);
-									jta.setText(String.format(Messages.getString("Main.window.error.fst"), sw.toString())); //$NON-NLS-1$
+									jta.setText(
+											String.format(Messages.getString("Main.window.error.fst"), sw.toString())); //$NON-NLS-1$
 									jta.setEditable(false);
-									JOptionPane.showMessageDialog(window, new JScrollPane(jta), "Error",
+									JOptionPane.showMessageDialog(window, new JScrollPane(jta), "Error", //$NON-NLS-1$
 											JOptionPane.ERROR_MESSAGE);
 								}
 							}
@@ -283,6 +305,8 @@ public class Main {
 		updateInfo(InfoText.LOAD_SHEETS);
 		deliverableBook = new XSSFWorkbook(new FileInputStream(selectedFiles[0]));
 		workbookBook = new XSSFWorkbook(new FileInputStream(selectedFiles[1]));
+		deliverableBook.setMissingCellPolicy(Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+		workbookBook.setMissingCellPolicy(Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
 	}
 
 	/**
@@ -293,17 +317,21 @@ public class Main {
 	 */
 	private static void buildingValidation() throws IOException {
 		updateInfo(InfoText.BUILD_VALID);
-		XSSFSheet buildingSheet = deliverableBook.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")); //$NON-NLS-1$
+		XSSFSheet buildingSheet = deliverableBook
+				.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")); //$NON-NLS-1$
 
 		// make a highlighted red style
 		XSSFCellStyle redHighlight = buildingSheet.getRow(0).getCell(0).getCellStyle();
-		redHighlight.setFillBackgroundColor(new HSSFColor(0, 0, Color.RED));
+		final byte[] RED = { Byte.MAX_VALUE, 0, 0 };
+		redHighlight.setFillBackgroundColor(new XSSFColor(RED));
 
 		int rows = buildingSheet.getPhysicalNumberOfRows();
 		for (int i = 1; i < rows; i++) {
 			XSSFRow activeRow = buildingSheet.getRow(i);
 			String location = activeRow.getCell(3).toString();
-			XSSFRow workbookRow = getCorrespondingRow(workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, 2); //$NON-NLS-1$
+			XSSFRow workbookRow = getCorrespondingRow(
+					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, //$NON-NLS-1$
+					2);
 			if (workbookRow != null) {
 				setCell(workbookRow, 14, activeRow, 12);
 				setCell(workbookRow, 3, activeRow, 13);
@@ -335,13 +363,15 @@ public class Main {
 	 */
 	private static void towerValidation() throws IOException {
 		updateInfo(InfoText.TOWER_VALID);
-		XSSFSheet towerSheet = deliverableBook.getSheet(Messages.getString("Main.sheetName.deliverable.towerValidation")); //$NON-NLS-1$
+		XSSFSheet towerSheet = deliverableBook
+				.getSheet(Messages.getString("Main.sheetName.deliverable.towerValidation")); //$NON-NLS-1$
 
 		int rows = towerSheet.getPhysicalNumberOfRows();
 		for (int i = 1; i < rows; i++) {
 			XSSFRow activeRow = towerSheet.getRow(i);
 			String location = activeRow.getCell(3).toString();
-			XSSFRow workbookRow = getCorrespondingRow(workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, 2); //$NON-NLS-1$
+			XSSFRow workbookRow = getCorrespondingRow(
+					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, 2); //$NON-NLS-1$
 			if (workbookRow != null) {
 				setCell(workbookRow, 14, activeRow, 9);
 				setCell(workbookRow, 11, activeRow, 17);
@@ -358,13 +388,15 @@ public class Main {
 	 */
 	private static void groundsValidation() throws IOException {
 		updateInfo(InfoText.GROUNDS_VALID);
-		XSSFSheet groundsSheet = deliverableBook.getSheet(Messages.getString("Main.sheetName.deliverable.groundsValidation")); //$NON-NLS-1$
+		XSSFSheet groundsSheet = deliverableBook
+				.getSheet(Messages.getString("Main.sheetName.deliverable.groundsValidation")); //$NON-NLS-1$
 
 		int rows = groundsSheet.getPhysicalNumberOfRows();
 		for (int i = 1; i < rows; i++) {
 			XSSFRow activeRow = groundsSheet.getRow(i);
 			String location = activeRow.getCell(3).toString();
-			XSSFRow workbookRow = getCorrespondingRow(workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, 2); //$NON-NLS-1$
+			XSSFRow workbookRow = getCorrespondingRow(
+					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, 2); //$NON-NLS-1$
 			if (workbookRow != null) {
 				setCell(workbookRow, 14, activeRow, 9);
 				setCell(workbookRow, 11, activeRow, 14);
@@ -379,7 +411,8 @@ public class Main {
 	 */
 	private static void siteInventory() {
 		updateInfo(InfoText.SITE_INV);
-		XSSFSheet inventorySheet = deliverableBook.getSheet(Messages.getString("Main.Main.sheetName.deliverable.assetValidation")); //$NON-NLS-1$
+		XSSFSheet inventorySheet = deliverableBook
+				.getSheet(Messages.getString("Main.Main.sheetName.deliverable.assetValidation")); //$NON-NLS-1$
 		XSSFSheet workbookSheet = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.siteInventory")); //$NON-NLS-1$
 
 		HashSet<Integer> rowsToCheck = new HashSet<>();
@@ -404,42 +437,42 @@ public class Main {
 			setCell(workbookRow, 15, activeRow, 13);
 			setCell(workbookRow, 13, activeRow, 14);
 			setCell(workbookRow, 27, activeRow, 15); // TODO confirm expected life = estimated service life
-			activeRow.getCell(16).setCellValue(Integer.toString(Integer.parseInt(workbookRow.getCell(27).toString())
-					+ Integer.parseInt(workbookRow.getCell(30).toString()))); // TODO confirm this is how I should do
+			activeRow.getCell(16).setCellValue(Double.toString(Double.parseDouble(workbookRow.getCell(27).toString())
+					+ Double.parseDouble(workbookRow.getCell(30).toString()))); // TODO confirm this is how I should do
 																				// this
 			setCell(workbookRow, 34, activeRow, 17);
 		}
 
 		Iterator<Integer> it = rowsToCheck.iterator(); // Item only on worksheet, not on delivarable TODO: duplicate
 														// rows if Maximo ID blank
+		String locID = locationEntry.getText();
 		int counter = 1;
 		while (it.hasNext()) {
 			int currentRow = inventorySheet.getPhysicalNumberOfRows();
 			Integer i = it.next();
-			XSSFRow newRow = inventorySheet.getRow(currentRow);
+			XSSFRow newRow = inventorySheet.createRow(currentRow);
 			XSSFRow prevRow = inventorySheet.getRow(currentRow - 1);
 			XSSFRow workbookRow = workbookSheet.getRow(i);
 
-			String assetName = workbookRow.getCell(7).toString();
-			String buildingName = workbookRow.getCell(3).toString();
+			String assetName = FORMATTER.formatCellValue(workbookRow.getCell(7));
+			String buildingName = FORMATTER.formatCellValue(workbookRow.getCell(3));
 
 			setCell(prevRow, 0, newRow, 0);
-			newRow.getCell(1).setCellValue(Integer.toString(counter++) + Messages.getString("Main.sheet.newAssetIdSuffix")); //$NON-NLS-1$
+			newRow.getCell(1)
+					.setCellValue(Integer.toString(counter++) + Messages.getString("Main.sheet.newAssetIdSuffix")); //$NON-NLS-1$
 			newRow.getCell(2)
-					.setCellValue(JOptionPane.showInputDialog(window,
-							String.format(Messages.getString("Main.window.locationIdPrompt"), //$NON-NLS-1$
-									assetName, buildingName),
-							JOptionPane.QUESTION_MESSAGE));
+					.setCellValue(locID);
 			newRow.getCell(4).setCellValue(assetName);
 			newRow.getCell(5).setCellValue(Messages.getString("Main.sheet.operatingText")); //$NON-NLS-1$
-			newRow.getCell(6).setCellValue(Messages.getString("Main.39")); // TODO: where does usage come from? //$NON-NLS-1$
+			newRow.getCell(6).setCellValue(Messages.getString("Main.39")); // TODO: where does usage come //$NON-NLS-1$
+																			// from?
 			newRow.getCell(7).setCellValue(Messages.getString("Main.sheet.facilitiesText")); //$NON-NLS-1$
 			setCell(prevRow, 8, newRow, 8);
 			setCell(workbookRow, 46, newRow, 9);
-			newRow.getCell(12).setCellValue(newRow.getCell(0).toString().substring(3)); // TODO confirm this is an
+			newRow.getCell(11).setCellValue(FORMATTER.formatCellValue(newRow.getCell(0)).substring(3)); // TODO confirm this is an
 																						// appropriate way to get
 																						// inspection date
-			setCell(workbookRow, 13, newRow, 15);
+		//	setCell(workbookRow, 13, newRow, 15); Install date not used? No column header for it.
 		}
 	}
 
@@ -453,7 +486,7 @@ public class Main {
 	 * @param writeCol the index of cell on writeRow to write to
 	 */
 	private static void setCell(XSSFRow readRow, int readCol, XSSFRow writeRow, int writeCol) {
-		writeRow.getCell(writeCol).setCellValue(readRow.getCell(readCol).toString()); // TODO something if cell isn't
+		writeRow.getCell(writeCol).setCellValue(FORMATTER.formatCellValue(readRow.getCell(readCol))); // TODO something if cell isn't
 																						// empty/doesn't match new value
 	}
 
@@ -520,8 +553,8 @@ public class Main {
 	 * @return true if the user has selected valid files
 	 */
 	private static boolean checkCorrectSelections() {
-		return FileNameUtils.getExtension(selectedFiles[0].getName()).equals("xlsx")
-				&& FileNameUtils.getExtension(selectedFiles[1].getName()).equals("xlsx");
+		return FileNameUtils.getExtension(selectedFiles[0].getName()).equals("xlsx") //$NON-NLS-1$
+				&& FileNameUtils.getExtension(selectedFiles[1].getName()).equals("xlsx"); //$NON-NLS-1$
 	}
 
 	/**
@@ -577,6 +610,8 @@ public class Main {
 			return Messages.getString("Main.infoText.siteInventory"); //$NON-NLS-1$
 		case TOWER_VALID:
 			return Messages.getString("Main.infoText.towerValidation"); //$NON-NLS-1$
+		case DONE:
+			return Messages.getString("Main.infoText.done");
 		}
 		return null;
 	}
