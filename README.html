@@ -1,0 +1,159 @@
+<h1 id="data-deliverable-tool">Data Deliverable Tool</h1>
+<p>A tool to process data deliverable files, comparing to content of a supplied workbook to add any missing content and update existing content.</p>
+<h2 id="table-of-contents">Table of contents</h2>
+<ul>
+<li><p><a href="#setup-&-requirements">Setup &amp; Requirements</a></p>
+</li>
+<li><p><a href="#gui-and-how-to-use">GUI and How To Use</a></p>
+<ul>
+<li><p><a href="#deliverable-file">Deliverable File</a></p>
+</li>
+<li><p><a href="#workbook-file">Workbook File</a></p>
+</li>
+</ul>
+</li>
+<li><p><a href="#troubleshooting">Troubleshooting</a></p>
+</li>
+<li><p><a href="#details">Details</a></p>
+<ul>
+<li><p><a href="#validation-sheets">Validation Sheets</a></p>
+</li>
+<li><p><a href="#site-inventory-sheet">Site Inventory Sheet</a></p>
+</li>
+<li><p><a href="#work-items">Work Items</a></p>
+<ul>
+<li><p><a href="#deficiency-data">Deficiency Data</a></p>
+</li>
+<li><p><a href="#cost-data">Cost Data</a></p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><a href="#changing-the-code">Changing the code</a></p>
+<ul>
+<li><p><a href="#externalized-strings">Externalized Strings</a></p>
+</li>
+<li><p><a href="#java-code">Java Code</a></p>
+</li>
+</ul>
+</li>
+<li><p><a href="#in-the-github">In the GitHub</a></p>
+</li>
+<li><p><a href="#license">License</a></p>
+</li>
+</ul>
+<h2 id="setup--requirements">Setup &amp; Requirements</h2>
+<p>Java SE 17 is required to run this program. If you&#39;ve used any of my previous tools, you&#39;ll already have it installed. If you don&#39;t have Java 17 or newer, you can download an installer for Temurin/OpenJDK 17 from <a href="https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.8%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.8_7.msi">here</a>. This is an open-source version of java. Once downloaded, you can run the installer by double-clicking, it will open a window guiding you through the installation. Leaving everything as the defaults and just clicking through the pages should work perfectly.</p>
+<p>The program itself can be downloaded from the <a href="https://github.com/Jaden-Unruh/Data-Deliverable-Tool">GitHub</a>, it is a <code>.jar</code> file in the parent directory, called something like <code>data-deliverable-tool-1.0.x-jar-with-dependencies.jar</code>. Click the name of the file there, and click the dowload button (an arrow pointing downards towards a tray) in the top-right. The button will say &quot;Download raw file&quot; when you hover over it. You can rename the file to whatever you like after it&#39;s downloaded.</p>
+<p>Once Temurin/Java 17 and the program <code>.jar</code> are installed, double click the <code>.jar</code> to run.</p>
+<h2 id="gui-and-how-to-use">GUI and How To Use</h2>
+<p>After double-clicking the <code>.jar</code>, a window titled &quot;Data Deliverable Tool&quot; will open. It will have two prompts, as described below:</p>
+<ol>
+<li><p><code>Select a Deliverable CA file: Select...</code></p>
+<ul>
+<li>Click on the select button to open a file prompt, navigate to and select a deliverable inspection spreadsheet (<code>Deliverable - CA-20xx-⋯.xlsx</code>). Note that this must be a <code>*.xlsx</code> file, rather than <code>*.xlsb</code> or any other spreadsheet filetype - see Troubleshooting for more. The contents of this spreadsheet should be as described <a href="#deliverable-sheet">below</a>.</li>
+</ul>
+</li>
+<li><p><code>Select a Workbook file: Select...</code></p>
+<ul>
+<li>Click on the select button and, as above, select a workbook spreadsheet (<code>Workbook.xlsx</code>). Again, this must be a <code>*.xlsx</code> file, and should have contents as described <a href="#workbook-sheet">below</a>.</li>
+</ul>
+</li>
+</ol>
+<p>The other contents of the window are the <code>Close</code>, <code>Run</code>, and <code>Help</code> buttons. Close and run are self-explanatory, Help opens a brief dialogue describing what I&#39;ve written above, with a prompt to go to the Github page for this extended README.</p>
+<h3 id="deliverable-file">Deliverable File</h3>
+<p>This spreadsheet will have many sheets within it, as named below. Note that the sheets can follow either the old naming pattern or the new one, and if they use the old names they will be updated to the new schema by the program:</p>
+<ul>
+<li><p>Building Validation Report -&gt; Building Validation</p>
+</li>
+<li><p>Grounds Validation Data -&gt; Grounds Validation</p>
+</li>
+<li><p>Tower Validation Data -&gt; Tower Validation</p>
+</li>
+<li><p>Tank Validation Data -&gt; Tank Validation</p>
+</li>
+<li><p>Site Inventory -&gt; Asset Validation</p>
+</li>
+<li><p>Work Order List (O&amp;M)</p>
+</li>
+<li><p>Work Orders -&gt; Work Order Validation (DM/UK)</p>
+</li>
+<li><p>Deficiency Data -&gt; New Work Orders</p>
+</li>
+<li><p>Cost Data</p>
+</li>
+<li><p>Cost Factors</p>
+</li>
+</ul>
+<p>If any sheets have names that aren&#39;t on the list, they won&#39;t be renamed and will not halt the program. However, sheet names <em>must</em> match the prompted names for the validation steps to work.</p>
+<p>Details on what each of the required sheets for validation should contain and what will happen to the sheets when the program is run can be found in <a href="#details">Details</a>.</p>
+<h3 id="workbook-file">Workbook File</h3>
+<p>This should have 3 pages in it, titled <code>BTG Validation</code>, <code>Site Inventory</code>, and <code>Work Items</code>. They can be in any order, but must be named exactly as specified. This spreadsheet will not be edited at all by the program. <code>BTG Validation</code> is a list of buildings with identifiers (location number, name, etc.) and information (size, floors, gps coordinates, etc.). <code>Site Inventory</code> is a list of assets with identifiers (asset id, maximo id, name, etc.) and information (install year, RSL, CRV, etc.). Work items is a list of work items with identifiers. Details on exact placement of this data can be found in <a href="#details">Details</a></p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<blockquote>
+<p>Nothing&#39;s happening when I double click the <code>.JAR</code> file</p>
+</blockquote>
+<p>Ensure you&#39;ve installed Java as specified under <a href="#setup-&-requirements">Setup</a>. If you believe you have, try checking your java version:</p>
+<ol>
+<li>Press Win+R, type <code>cmd</code> and press enter - this will open a command prompt window</li>
+<li>Type <code>java -version</code> and press enter</li>
+<li>If you&#39;ve installed java as specified, the first line under your typing should read <code>openjdk version &quot;17.0.8&quot; 2023-07-18</code>[^2]. If, instead, it says <code>&#39;java&#39; is not recognized as an internal...</code> then java is not installed.</li>
+</ol>
+<p>[^2]: If you had a version of java other than the one specified in Setup, this may show a different version, but should be similar. However, you probably wouldn&#39;t be in this troubleshooting step if this is the case.</p>
+<hr>
+<blockquote>
+<p>I only have spreadsheets of type <code>*.xlsb</code> or <code>*.csv</code> (or any other spreadsheet type) and the program won&#39;t open them</p>
+</blockquote>
+<p>Open the spreadsheets in Microsoft Excel and select &#39;File -&gt; Save As -&gt; This PC&#39; and choosing &#39;Excel Workbook (.xlsx)&#39; from the drop-down. A full list of filetypes that Excel supports (and thus can be converted to .xlsx) can be found <a href="https://learn.microsoft.com/en-us/deployoffice/compat/office-file-format-reference#file-formats-that-are-supported-in-excel">here</a>.</p>
+<hr>
+<blockquote>
+<p><code>Run</code> isn&#39;t doing anything</p>
+</blockquote>
+<p>Ensure that you&#39;ve selected two <code>*.xlsx</code> files. Spreadsheets of a different type will not work.</p>
+<hr>
+<blockquote>
+<p>I&#39;m getting an error message popping up when I run the file</p>
+</blockquote>
+<p>If you&#39;re getting an error message and you can&#39;t figure out what it&#39;s saying or how to fix it, reach out to me. If you click <code>More Info</code> on the error popup and copy the big text box, that text (a full stack trace on the error) can help me figure out what&#39;s going on.</p>
+<hr>
+<blockquote>
+<p>Something else is going wrong</p>
+</blockquote>
+<p>Don&#39;t hesitate to reach out to me if you have any other issues - always happy to help.</p>
+<h2 id="details">Details</h2>
+<p>There are two main sections that the program runs: completing the validation sheets, all of which are quite similar; and then the site inventory sheet, which is a little different.</p>
+<h3 id="validation-sheets">Validation Sheets</h3>
+<p>For the Building, Tower, Grounds, and Tank Validation sheets, the program will first pull the location number (AB######) from column D of each sheet, then compare that to column C from the Workbook Validation sheet. It will pull the relevant information, such as inspection date, CRV Value, Floors, GPS coordinates, etc.; depending on which validation sheet we&#39;re working on at the time, and copy that data back to the deliverable file.</p>
+<h3 id="site-inventory-sheet">Site Inventory Sheet</h3>
+<p>For the site inventory sheet, things are a little more complicated. We start by pulling the Asset ID from column B of the Site Inventory sheet in the deliverable. Then, we do one of the following:</p>
+<ul>
+<li><p>If a corresponding maximo ID is found in column AY of the workbook, we copy relevant information (manufacturer, install date, etc.).</p>
+</li>
+<li><p>If no corresponding maximo ID is found, or if one is found but it has description <code>Removed</code> (case insensitive), change Status (col F) to <code>DECOMMISSIONED</code></p>
+</li>
+</ul>
+<p>Next, we look at any rows of the Workbook that haven&#39;t been used yet - i.e., any whose Maximo ID is not on the Deliverable. For each, we add a new row to the deliverable, copying some information (Inspection number, Site ID) from other rows, pulling some from the workbook (Priority, inspection date, etc.), and we prompt for the location ID.</p>
+<h3 id="work-items">Work Items</h3>
+<p>The <code>Work Items</code> section of the workbook is used for the <code>Deficiency Data</code> (renamed to <code>New Work Orders</code>) and <code>Cost Data</code> sections of the deliverable:</p>
+<h4 id="deficiency-data">Deficiency Data</h4>
+<p>This section will start empty, so we take each line of <code>Work Items</code> in the workbook and copy over data - Work Item Number, Location ID, Maximo ID, Work Item Name, Problem/Solution Statements. We take the Work Category and Rank from the same cell in the workbook, splitting them into two separate cells, and take a substring of the Distress Type to get Reason for Deficiency. We pull Inspection Number and Site ID from the first row of <code>Building Data</code>. Status is defaulted to &quot;NEW&quot; and IA Function to &quot;F&quot; - these values can be changed in <code>messages.properties</code> if you decompress the <code>.jar</code>.</p>
+<h4 id="cost-data">Cost Data</h4>
+<p>First, we check every line of <code>Work Items</code> against what&#39;s already in <code>Cost Data</code>  (using Work Item Number) to see which ones we need to copy over. For those that aren&#39;t on <code>Cost Data</code> yet, we copy over relevant information - Work Item Number, Location ID, Burdened Total Cost, and Work Item Name. We pull Inspection Number and Site ID from the first row of <code>Building Data</code> again. Type and Line Type are defaulted to &quot;MATERIAL&quot; - this can be changed in <code>messages.properties</code> if you decompress the <code>.jar</code>.</p>
+<h2 id="changing-the-code">Changing the Code</h2>
+<p>The <code>.JAR</code> file is compiled and compressed, meaning all the code is not human-readable. You can decompress and recompress the file to change certain parts, like some of the GUI text and default values for the sheets (see <a href="#externalized-strings">Externalized Strings</a>), but all of the code itself is not editable. Instead, all of the program files are included in a <a href="https://github.com/Jaden-Unruh/Data-Deliverable-Tool">github repository</a> so that anyone other than me could download them and open them in an IDE (I use Eclipse).</p>
+<h3 id="externalized-strings">Externalized Strings</h3>
+<p>Nearly every user-visible piece of text, both in the GUI and preset values used in the sheets are in a (somewhat) user-editable file - that is, you can edit it without recompiling the java code. You do, though, need to decompress and recompress the contents of the <code>.jar</code> using a tool like <a href="https://www.win-rar.com/">WinRar</a>.</p>
+<p>The externalized strings are found in <code>data-deliverable-tool-x.x.x.jar\dataDeliverableTool\messages.properties</code>. Each is one line, constructed as a key-value pair, where everything to the left of the &#39;=&#39; is the key, used by the program to find the String to use (don&#39;t change that side), and everything to the right can be edited to change what the program uses whenever it references that key. For example, take the line <code>Main.sheet.cost.lineType=MATERIAL</code>. This is what the program will put as the default value in the LINETYPE column of the <code>Cost Data</code> sheet. If you changed that line to <code>Main.sheet.cost.lineType=SomethingElse</code>, then the program would put &quot;SomethingElse&quot; in the LINETYPE column for each row it adds to <code>Cost Data</code>. Be sure to save and recompress the <code>.jar</code> before running.</p>
+<h3 id="java-code">Java Code</h3>
+<p>The actual code for the project, written in Java, cannot be edited without recompiling the project. Thus, I have provided all my project files in the GitHub repository. The code itself is located within <a href="https://github.com/Jaden-Unruh/Data-Deliverable-Tool/tree/master/src/main/java/dataDeliverableTool">/src/main/java/dataDeliverableTool</a>, with <code>Main.java</code> being the primary program file. To edit these, I would advise cloning the project from GitHub and opening in your preferred IDE, then re-building using a tool like <a href="https://maven.apache.org/">Maven</a>. I have included my <code>pom.xml</code> to facilitate the build.</p>
+<h2 id="in-the-github">In the GitHub</h2>
+<p>The <a href="https://github.com/Jaden-Unruh/Data-Deliverable-Tool">github repository</a> has a handful of files, but most of them are only necessary if you wish to modify the code.</p>
+<p>The main <code>.jar</code> that you downloaded to run the project is just that - the project itself, all bundled up neatly and easy to use.</p>
+<p>The two files titled README (<code>.md</code> and <code>.html</code>) are this long text document - the <code>.md</code> file is my preferred method for writing these sorts of things, but if you can&#39;t open that one the <code>.html</code> should do just fine, and opens in any browser. It&#39;s also rendered nicely below the file list in the github, so you don&#39;t have to download it.</p>
+<p><code>LICENSE</code> is the legal protections for this project, it&#39;s a strong copyleft license. See <a href="#license">License</a> below for more.</p>
+<p><code>doc</code> is detailed documentation of my java code using <a href="https://en.wikipedia.org/wiki/Javadoc">javadoc</a>. You can download the folder and open <code>doc\index.html</code>, or, if you don&#39;t want to download it, <a href="https://html-preview.github.io/?url=https://raw.githubusercontent.com/Jaden-Unruh/Data-Deliverable-Tool/master/doc/dataDeliverableTool/package-summary.html">this link</a> will take you to a tool that allows you to view the html files without downloading.</p>
+<p>Everything else - <code>.settings</code>, <code>src</code>, <code>target</code>, <code>.classpath</code>, <code>.project</code>, and <code>pom.xml</code> are the project files, included so anyone can view and edit my code if desired. My advice would be to download the whole project (clone) and open it with an IDE - I use <a href="https://eclipseide.org/">Eclipse</a>.</p>
+<h2 id="license">License</h2>
+<p>In my previous tools, I did not include a License, but for this one I decided to - primarily in case I&#39;m not around to maintain the tool in the future. It shouldn&#39;t affect any use of the tool within Akana, and doesn&#39;t have any impact on the copyright of data edited by the code - only future distributions of the code itself.</p>
+<p>Data Deliverable Tool is available under the <a href="https://www.gnu.org/licenses/gpl-3.0.en.html">GNU General Public License v3.0</a> or later. In summary, this code is available to use, copy, and modify, under the condition that all derivative works contianing the code (not including sheets edited with the code) are released under the same license. This project is provided without liability or warranty. See the <code>LICENSE</code> file for more.</p>
