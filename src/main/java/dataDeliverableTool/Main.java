@@ -18,6 +18,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
+import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -53,7 +54,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  * @since 0.0.1
  */
 enum InfoText {
-	ERROR, SELECT_PROMPT, DESKTOP, LOAD_SHEETS, INIT, CLOSING, BUILD_VALID, TOWER_VALID, GROUNDS_VALID, SITE_INV, DONE
+	ERROR, SELECT_PROMPT, DESKTOP, LOAD_SHEETS, INIT, CLOSING, BUILD_VALID, TOWER_VALID, GROUNDS_VALID, SITE_INV, DONE,
+	DEF_DATA, COST_DATA, TANK_VALID
 }
 
 /**
@@ -65,7 +67,7 @@ enum InfoText {
  * @since 0.0.1
  */
 public class Main {
-	
+
 	static final DataFormatter FORMATTER = new DataFormatter();
 
 	/**
@@ -85,12 +87,13 @@ public class Main {
 	 * @see #infoText
 	 */
 	static JLabel info = new JLabel();
-	
+
 	/**
-	 * Regular expression for location number: A##-## where A can be any capital letter, # can be any digit
+	 * Regular expression for location number: A##-## where A can be any capital
+	 * letter, # can be any digit
 	 */
 	static final String LOCATION_REGEX = "^[A-Z]\\d{2}-\\d{2}$"; //$NON-NLS-1$
-	
+
 	/**
 	 * Input field for location ID
 	 */
@@ -113,6 +116,11 @@ public class Main {
 	 * Writer for generated info text file - only defined in {@link #init()}
 	 */
 	static FileWriter writeToInfo;
+	
+	/**
+	 * Time the user clicks 'Run' in nanoseconds measured to some arbitrary moment - used to compute total run time
+	 */
+	static long startTime;
 
 	/**
 	 * Entry method for {@link Main}
@@ -137,6 +145,7 @@ public class Main {
 	 *                     grabbing sheet renaming .dat file fails
 	 */
 	private static void init() throws IOException {
+		startTime = System.nanoTime();
 		updateInfo(InfoText.INIT);
 		try (InputStream in = Main.class.getResourceAsStream("newNames.dat"); //$NON-NLS-1$
 				BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
@@ -166,12 +175,20 @@ public class Main {
 	 */
 	private static void terminate() throws IOException {
 		updateInfo(InfoText.CLOSING);
-		writeToInfo.close();
 		FileOutputStream out = new FileOutputStream(selectedFiles[0]);
 		deliverableBook.write(out);
 		out.close();
 		deliverableBook.close();
 		workbookBook.close();
+		
+		String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS"));
+		DecimalFormat secondFormatter = new DecimalFormat("#,###.########");
+		
+		double seconds = (double)(System.nanoTime() - startTime) / 1e9;
+		
+		writeToInfo.append(String.format(Messages.getString("Main.infoFile.footer"), dateTime, secondFormatter.format(seconds)));
+		
+		writeToInfo.close();
 	}
 
 	/**
@@ -189,9 +206,9 @@ public class Main {
 		window.add(new JLabel(Messages.getString("Main.window.workbookFilePrompt")), simpleConstraints(0, 1, 2, 1)); //$NON-NLS-1$
 		JButton selectWorkbook = new SelectButton(1);
 		window.add(selectWorkbook, simpleConstraints(2, 1, 1, 1));
-		
+
 		window.add(new JLabel(Messages.getString("Main.window.locIDPrompt")), simpleConstraints(0, 2, 2, 1));
-		
+
 		locationEntry = new EntryField(LOCATION_REGEX, Messages.getString("Main.window.locIDDefText")); //$NON-NLS-1$
 		window.add(locationEntry, simpleConstraints(2, 2, 1, 1));
 
@@ -245,9 +262,12 @@ public class Main {
 							buildingValidation();
 							towerValidation();
 							groundsValidation();
+							tankValidation();
 							siteInventory();
+							deficiencyData();
+							costData();
 							terminate();
-							
+
 							updateInfo(InfoText.DONE);
 
 							run.setEnabled(true);
@@ -405,14 +425,38 @@ public class Main {
 		}
 	}
 
-	// TODO tank validation?
+	/**
+	 * Runs tank validation section of program - see github readme for details
+	 * 
+	 * @throws IOException if there's an error writing to info file - only writes if
+	 *                     location number not found in workbook
+	 */
+	private static void tankValidation() throws IOException {
+		updateInfo(InfoText.TANK_VALID);
+		XSSFSheet groundsSheet = deliverableBook
+				.getSheet(Messages.getString("Main.sheetName.deliverable.tankValidation")); //$NON-NLS-1$
+
+		int rows = groundsSheet.getPhysicalNumberOfRows();
+		for (int i = 1; i < rows; i++) {
+			XSSFRow activeRow = groundsSheet.getRow(i);
+			String location = activeRow.getCell(3).toString();
+			XSSFRow workbookRow = getCorrespondingRow(
+					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, 2); //$NON-NLS-1$
+			if (workbookRow != null) {
+				setCell(workbookRow, 14, activeRow, 9);
+				setCell(workbookRow, 11, activeRow, 14);
+			} else
+				writeToInfo.append(String.format(Messages.getString("Main.infoFile.locNumNotFound"), location)); //$NON-NLS-1$
+		}
+	}
+
 	/**
 	 * Runs site inventory section of the program - see github readme for details
 	 */
 	private static void siteInventory() {
 		updateInfo(InfoText.SITE_INV);
 		XSSFSheet inventorySheet = deliverableBook
-				.getSheet(Messages.getString("Main.Main.sheetName.deliverable.assetValidation")); //$NON-NLS-1$
+				.getSheet(Messages.getString("Main.sheetName.deliverable.assetValidation")); //$NON-NLS-1$
 		XSSFSheet workbookSheet = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.siteInventory")); //$NON-NLS-1$
 
 		HashSet<Integer> rowsToCheck = new HashSet<>();
@@ -436,15 +480,13 @@ public class Main {
 				activeRow.getCell(5).setCellValue(Messages.getString("Main.sheet.decommissionedText")); //$NON-NLS-1$
 			setCell(workbookRow, 15, activeRow, 13);
 			setCell(workbookRow, 13, activeRow, 14);
-			setCell(workbookRow, 27, activeRow, 15); // TODO confirm expected life = estimated service life
+			setCell(workbookRow, 27, activeRow, 15);
 			activeRow.getCell(16).setCellValue(Double.toString(Double.parseDouble(workbookRow.getCell(27).toString())
-					+ Double.parseDouble(workbookRow.getCell(30).toString()))); // TODO confirm this is how I should do
-																				// this
+					+ Double.parseDouble(workbookRow.getCell(30).toString())));
 			setCell(workbookRow, 34, activeRow, 17);
 		}
 
-		Iterator<Integer> it = rowsToCheck.iterator(); // Item only on worksheet, not on delivarable TODO: duplicate
-														// rows if Maximo ID blank
+		Iterator<Integer> it = rowsToCheck.iterator(); // Item only on worksheet, not on delivarable
 		String locID = locationEntry.getText();
 		int counter = 1;
 		while (it.hasNext()) {
@@ -460,34 +502,145 @@ public class Main {
 			setCell(prevRow, 0, newRow, 0);
 			newRow.getCell(1)
 					.setCellValue(Integer.toString(counter++) + Messages.getString("Main.sheet.newAssetIdSuffix")); //$NON-NLS-1$
-			newRow.getCell(2)
-					.setCellValue(locID);
+			newRow.getCell(2).setCellValue(locID);
 			newRow.getCell(4).setCellValue(assetName);
 			newRow.getCell(5).setCellValue(Messages.getString("Main.sheet.operatingText")); //$NON-NLS-1$
-			newRow.getCell(6).setCellValue(Messages.getString("Main.39")); // TODO: where does usage come //$NON-NLS-1$
-																			// from?
+			newRow.getCell(6).setCellValue(Messages.getString("Main.sheet.usage")); // TODO: where does //$NON-NLS-1$
+																					// usage come
+																					// from?
 			newRow.getCell(7).setCellValue(Messages.getString("Main.sheet.facilitiesText")); //$NON-NLS-1$
 			setCell(prevRow, 8, newRow, 8);
 			setCell(workbookRow, 46, newRow, 9);
-			newRow.getCell(11).setCellValue(FORMATTER.formatCellValue(newRow.getCell(0)).substring(3)); // TODO confirm this is an
-																						// appropriate way to get
-																						// inspection date
-		//	setCell(workbookRow, 13, newRow, 15); Install date not used? No column header for it.
+			newRow.getCell(11).setCellValue(FORMATTER.formatCellValue(newRow.getCell(0)).substring(3));
 		}
 	}
 
 	/**
-	 * Sets the specified cell on a given row to the contents of the specified cell
-	 * on another given row
+	 * Runs deficiency data section of the program - see github readme for details
+	 */
+	private static void deficiencyData() {
+		updateInfo(InfoText.DEF_DATA);
+
+		// Copy from building validation b/c deficiency data might be empty
+		String inspNum = FORMATTER.formatCellValue(deliverableBook
+				.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")).getRow(1).getCell(0));
+		String siteID = FORMATTER.formatCellValue(deliverableBook
+				.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")).getRow(1).getCell(2));
+
+		XSSFSheet defSheet = deliverableBook.getSheet(Messages.getString("Main.sheetName.deliverable.defData"));
+		XSSFSheet workbookSheet = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.workItems"));
+		
+		// check how many rows Deficiency Data has:
+		int startRow = 0;
+		XSSFRow checkRow;
+		while ((checkRow = defSheet.getRow(++startRow)) != null
+				&& FORMATTER.formatCellValue(checkRow.getCell(0)).length() != 0)
+			;
+		
+		int rows = workbookSheet.getPhysicalNumberOfRows();
+		for (int i = 0; i < rows; i++) {
+			
+			XSSFRow activeRow = defSheet.createRow(i + startRow);
+			XSSFRow workbookRow = workbookSheet.getRow(i + 1);
+
+			if (FORMATTER.formatCellValue(workbookRow.getCell(0)).length() == 0)
+				break;
+
+			activeRow.getCell(0).setCellValue(inspNum);
+			setCell(workbookRow, 7, activeRow, 1);
+			setCell(workbookRow, 28, activeRow, 2);
+			setCell(workbookRow, 27, activeRow, 3);
+			activeRow.getCell(4).setCellValue(siteID);
+			activeRow.getCell(7).setCellValue(Messages.getString("Main.sheet.deficiency.status"));
+			setCell(workbookRow, 8, activeRow, 8);
+			setCell(workbookRow, 13, activeRow, 10, 0, 1);
+			setCell(workbookRow, 13, activeRow, 11, 2, 3);
+			activeRow.getCell(12).setCellValue(Messages.getString("Main.sheet.deficiency.iaFunc"));
+			setCell(workbookRow, 12, activeRow, 17, 0, 2);
+
+			activeRow.getCell(19)
+					.setCellValue(String.format("%s; %s", FORMATTER.formatCellValue(workbookRow.getCell(22)),
+							FORMATTER.formatCellValue(workbookRow.getCell(23))));
+		}
+	}
+
+	/**
+	 * Runs cost data section of the program - see github readme for details
+	 */
+	private static void costData() {
+		updateInfo(InfoText.COST_DATA);
+
+		XSSFSheet costSheet = deliverableBook.getSheet(Messages.getString("Main.sheetName.deliverable.costData"));
+		XSSFSheet workbookSheet = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.workItems"));
+
+		String inspNum = FORMATTER.formatCellValue(deliverableBook
+				.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")).getRow(1).getCell(0));
+		String siteID = FORMATTER.formatCellValue(deliverableBook
+				.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")).getRow(1).getCell(2));
+
+		HashSet<Integer> rowsToAdd = new HashSet<>();
+		int rows = workbookSheet.getPhysicalNumberOfRows();
+		for (int i = 1; i < rows; i++)
+			if (getCorrespondingRowNumber(costSheet, FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(7)),
+					5) < 0)
+				rowsToAdd.add(i);
+
+		Iterator<Integer> it = rowsToAdd.iterator();
+
+		while (it.hasNext()) {
+			int copyRow = it.next();
+			int currentRow = costSheet.getPhysicalNumberOfRows();
+			XSSFRow activeRow = costSheet.createRow(currentRow);
+			XSSFRow workbookRow = workbookSheet.getRow(copyRow);
+
+			activeRow.getCell(0).setCellValue(inspNum);
+			setCell(workbookRow, 7, activeRow, 1);
+			setCell(workbookRow, 28, activeRow, 2);
+			activeRow.getCell(3).setCellValue(siteID);
+			activeRow.getCell(4).setCellValue(Messages.getString("Main.sheet.cost.type"));
+			setCell(workbookRow, 7, activeRow, 5);
+			activeRow.getCell(12).setCellValue(Messages.getString("Main.sheet.cost.lineType"));
+			setCell(workbookRow, 26, activeRow, 15);
+			setCell(workbookRow, 8, activeRow, 17);
+		}
+	}
+
+	/**
+	 * Sets the specified cell on a given row to the contents of a specified cell on
+	 * another given row
 	 * 
 	 * @param readRow  the row to read from
 	 * @param readCol  the index of cell of readRow to read from
 	 * @param writeRow the row to write to
 	 * @param writeCol the index of cell on writeRow to write to
+	 * @see Main#setCell(XSSFRow, int, XSSFRow, int, int, int)
 	 */
 	private static void setCell(XSSFRow readRow, int readCol, XSSFRow writeRow, int writeCol) {
-		writeRow.getCell(writeCol).setCellValue(FORMATTER.formatCellValue(readRow.getCell(readCol))); // TODO something if cell isn't
-																						// empty/doesn't match new value
+		writeRow.getCell(writeCol).setCellValue(FORMATTER.formatCellValue(readRow.getCell(readCol))); // TODO something
+																										// if cell isn't
+																										// empty/doesn't
+																										// match new
+																										// value
+	}
+
+	/**
+	 * Sets the specified cell on a given row to a substring of the contents of a
+	 * specified cell on another given row
+	 * 
+	 * @param readRow    the row to read from
+	 * @param readCol    the index of cell of readRow to read from
+	 * @param writeRow   the row to write to
+	 * @param writeCol   the index of cell on writeRow to write to
+	 * @param startIndex the start index for the substring of the string we're
+	 *                   writing
+	 * @param endIndex   the end index for the substring of the string we're writing
+	 * @see Main#setCell(XSSFRow, int, XSSFRow, int)
+	 * @see String#substring(int, int)
+	 */
+	private static void setCell(XSSFRow readRow, int readCol, XSSFRow writeRow, int writeCol, int startIndex,
+			int endIndex) {
+		writeRow.getCell(writeCol)
+				.setCellValue(FORMATTER.formatCellValue(readRow.getCell(readCol)).substring(startIndex, endIndex));
 	}
 
 	/**
@@ -501,10 +654,8 @@ public class Main {
 	 * @see #getCorrespondingRowNumber(XSSFSheet, String, int)
 	 */
 	private static XSSFRow getCorrespondingRow(XSSFSheet sheet, String value, int matchCol) {
-		int num = getCorrespondingRowNumber(sheet, value, matchCol);
-		if (num > -1)
-			return sheet.getRow(num);
-		return null;
+		int num;
+		return (num = getCorrespondingRowNumber(sheet, value, matchCol)) > -1 ? sheet.getRow(num) : null;
 	}
 
 	/**
@@ -527,9 +678,9 @@ public class Main {
 	}
 
 	/**
-	 * Mapping of old to new sheet names
+	 * Mapping of old to new sheet names in the deliverable file
 	 */
-	private final static HashMap<String, String> nameMap = new HashMap<String, String>();
+	final static HashMap<String, String> nameMap = new HashMap<String, String>();
 
 	/**
 	 * Renames sheets according to the specified mapping - found in file
@@ -611,7 +762,13 @@ public class Main {
 		case TOWER_VALID:
 			return Messages.getString("Main.infoText.towerValidation"); //$NON-NLS-1$
 		case DONE:
-			return Messages.getString("Main.infoText.done");
+			return Messages.getString("Main.infoText.done"); //$NON-NLS-1$
+		case DEF_DATA:
+			return Messages.getString("Main.infoText.deficiencyData"); //$NON-NLS-1$
+		case COST_DATA:
+			return Messages.getString("Main.infoText.costData"); //$NON-NLS-1$
+		case TANK_VALID:
+			return Messages.getString("Main.infoText.tankValidation"); //$NON-NLS-1$
 		}
 		return null;
 	}

@@ -8,9 +8,9 @@ A tool to process data deliverable files, comparing to content of a supplied wor
 
 - [GUI and How To Use](#gui-and-how-to-use)
   
-  * [Deliverable sheet](#deliverable-sheet)
+  * [Deliverable File](#deliverable-file)
   
-  * [Workbook sheet](#workbook-sheet)
+  * [Workbook File](#workbook-file)
 
 - [Troubleshooting](#troubleshooting)
 
@@ -19,8 +19,18 @@ A tool to process data deliverable files, comparing to content of a supplied wor
   - [Validation Sheets](#validation-sheets)
   
   - [Site Inventory Sheet](#site-inventory-sheet)
+  
+  - [Work Items](#work-items)
+    
+    - [Deficiency Data](#deficiency-data)
+    
+    - [Cost Data](#cost-data)
 
 - [Changing the code](#changing-the-code)
+  
+  - [Externalized Strings](#externalized-strings)
+  
+  - [Java Code](#java-code)
 
 - [In the GitHub](#in-the-github)
 
@@ -48,7 +58,7 @@ After double-clicking the `.jar`, a window titled "Data Deliverable Tool" will o
 
 The other contents of the window are the `Close`, `Run`, and `Help` buttons. Close and run are self-explanatory, Help opens a brief dialogue describing what I've written above, with a prompt to go to the Github page for this extended README.
 
-### Deliverable Sheet
+### Deliverable File
 
 This spreadsheet will have many sheets within it, as named below. Note that the sheets can follow either the old naming pattern or the new one, and if they use the old names they will be updated to the new schema by the program:
 
@@ -72,13 +82,13 @@ This spreadsheet will have many sheets within it, as named below. Note that the 
 
 - Cost Factors
 
-Note that only the first 5 of these sheets (up through Site Inventory/Asset Validation) are actually used and required by the program, though work orders and deficiency data sheets will still be renamed when the program is run.
+If any sheets have names that aren't on the list, they won't be renamed and will not halt the program. However, sheet names *must* match the prompted names for the validation steps to work.
 
-Details on what each of the first 5 sheets should contain and what will happen to this sheet when the program is run can be found in [Details](#details).
+Details on what each of the required sheets for validation should contain and what will happen to the sheets when the program is run can be found in [Details](#details).
 
-### Workbook Sheet
+### Workbook File
 
-We will only use the first two pages of the workbook spreadsheet, titled `BTG Validation` and `Site Inventory`. This spreadsheet will not be edited at all by the program. `BTG Validation` is a list of buildings with identifiers (location number, name, etc.) and information (size, floors, gps coordinates, etc.). `Site Inventory` is a list of assets with identifiers (asset id, maximo id, name, etc.) and information (install year, RSL, CRV, etc.). Details on exact placement of this data can be found in [Details](#details)
+This should have 3 pages in it, titled `BTG Validation`, `Site Inventory`, and `Work Items`. They can be in any order, but must be named exactly as specified. This spreadsheet will not be edited at all by the program. `BTG Validation` is a list of buildings with identifiers (location number, name, etc.) and information (size, floors, gps coordinates, etc.). `Site Inventory` is a list of assets with identifiers (asset id, maximo id, name, etc.) and information (install year, RSL, CRV, etc.). Work items is a list of work items with identifiers. Details on exact placement of this data can be found in [Details](#details)
 
 ## Troubleshooting
 
@@ -122,7 +132,7 @@ There are two main sections that the program runs: completing the validation she
 
 ### Validation Sheets
 
-For the Building, Tower, and Grounds Validation sheets, the program will first pull the location number (AB######) from column D of each sheet, then compare that to column C from the Workbook Validation sheet. It will pull the relevant information, such as inspection date, CRV Value, Floors, GPS coordinates, etc.; depending on which validation sheet we're working on at the time, and copy that data back to the deliverable file.
+For the Building, Tower, Grounds, and Tank Validation sheets, the program will first pull the location number (AB######) from column D of each sheet, then compare that to column C from the Workbook Validation sheet. It will pull the relevant information, such as inspection date, CRV Value, Floors, GPS coordinates, etc.; depending on which validation sheet we're working on at the time, and copy that data back to the deliverable file.
 
 ### Site Inventory Sheet
 
@@ -134,9 +144,31 @@ For the site inventory sheet, things are a little more complicated. We start by 
 
 Next, we look at any rows of the Workbook that haven't been used yet - i.e., any whose Maximo ID is not on the Deliverable. For each, we add a new row to the deliverable, copying some information (Inspection number, Site ID) from other rows, pulling some from the workbook (Priority, inspection date, etc.), and we prompt for the location ID.
 
+### Work Items
+
+The `Work Items` section of the workbook is used for the `Deficiency Data` (renamed to `New Work Orders`) and `Cost Data` sections of the deliverable:
+
+#### Deficiency Data
+
+This section will start empty, so we take each line of `Work Items` in the workbook and copy over data - Work Item Number, Location ID, Maximo ID, Work Item Name, Problem/Solution Statements. We take the Work Category and Rank from the same cell in the workbook, splitting them into two separate cells, and take a substring of the Distress Type to get Reason for Deficiency. We pull Inspection Number and Site ID from the first row of `Building Data`. Status is defaulted to "NEW" and IA Function to "F" - these values can be changed in `messages.properties` if you decompress the `.jar`.
+
+#### Cost Data
+
+First, we check every line of `Work Items` against what's already in `Cost Data`  (using Work Item Number) to see which ones we need to copy over. For those that aren't on `Cost Data` yet, we copy over relevant information - Work Item Number, Location ID, Burdened Total Cost, and Work Item Name. We pull Inspection Number and Site ID from the first row of `Building Data` again. Type and Line Type are defaulted to "MATERIAL" - this can be changed in `messages.properties` if you decompress the `.jar`.
+
 ## Changing the Code
 
-The `.JAR` file is compiled and compressed, meaning all the code is not human-readable. You can decompile and recompile the file to change certain parts, like some of the GUI text, but all of the code itself is not editable. Instead, all of the program files are included in a [github repository](https://github.com/Jaden-Unruh/Data-Deliverable-Tool) so that anyone other than me could download them and open them in an IDE (I use Eclipse). See [In the GitHub](#in-the-github) for more.
+The `.JAR` file is compiled and compressed, meaning all the code is not human-readable. You can decompress and recompress the file to change certain parts, like some of the GUI text and default values for the sheets (see [Externalized Strings](#externalized-strings)), but all of the code itself is not editable. Instead, all of the program files are included in a [github repository](https://github.com/Jaden-Unruh/Data-Deliverable-Tool) so that anyone other than me could download them and open them in an IDE (I use Eclipse).
+
+### Externalized Strings
+
+Nearly every user-visible piece of text, both in the GUI and preset values used in the sheets are in a (somewhat) user-editable file - that is, you can edit it without recompiling the java code. You do, though, need to decompress and recompress the contents of the `.jar` using a tool like [WinRar](https://www.win-rar.com/).
+
+The externalized strings are found in `data-deliverable-tool-x.x.x.jar\dataDeliverableTool\messages.properties`. Each is one line, constructed as a key-value pair, where everything to the left of the '=' is the key, used by the program to find the String to use (don't change that side), and everything to the right can be edited to change what the program uses whenever it references that key. For example, take the line `Main.sheet.cost.lineType=MATERIAL`. This is what the program will put as the default value in the LINETYPE column of the `Cost Data` sheet. If you changed that line to `Main.sheet.cost.lineType=SomethingElse`, then the program would put "SomethingElse" in the LINETYPE column for each row it adds to `Cost Data`. Be sure to save and recompress the `.jar` before running.
+
+### Java Code
+
+The actual code for the project, written in Java, cannot be edited without recompiling the project. Thus, I have provided all my project files in the GitHub repository. The code itself is located within [/src/main/java/dataDeliverableTool](https://github.com/Jaden-Unruh/Data-Deliverable-Tool/tree/master/src/main/java/dataDeliverableTool), with `Main.java` being the primary program file. To edit these, I would advise cloning the project from GitHub and opening in your preferred IDE, then re-building using a tool like [Maven](https://maven.apache.org/). I have included my `pom.xml` to facilitate the build.
 
 ## In the GitHub
 
@@ -154,6 +186,6 @@ Everything else - `.settings`, `src`, `target`, `.classpath`, `.project`, and `p
 
 ## License
 
-In my previous tools, I did not include a License, but for this one I decided to - primarily in case I'm not around to maintain the tool in the future.  It shouldn't affect any use of the tool within Akana, and doesn't have any impact on the copyright of data edited by the code - only future distributions of the code itself.
+In my previous tools, I did not include a License, but for this one I decided to - primarily in case I'm not around to maintain the tool in the future. It shouldn't affect any use of the tool within Akana, and doesn't have any impact on the copyright of data edited by the code - only future distributions of the code itself.
 
 Data Deliverable Tool is available under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) or later. In summary, this code is available to use, copy, and modify, under the condition that all derivative works contianing the code (not including sheets edited with the code) are released under the same license. This project is provided without liability or warranty. See the `LICENSE` file for more.

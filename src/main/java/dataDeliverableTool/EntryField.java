@@ -128,7 +128,7 @@ class TextPrompt extends JLabel implements FocusListener, DocumentListener {
 
 		Color withAlpha = new Color(red, green, blue, alpha);
 		super.setForeground(withAlpha);
-	}
+	} 
 
 	/**
 	 * Check whether the prompt should be visible or not
@@ -163,5 +163,6 @@ class TextPrompt extends JLabel implements FocusListener, DocumentListener {
 	}
 
 	public void changedUpdate(DocumentEvent e) {
+		checkForPrompt();
 	}
 }
