@@ -16,6 +16,8 @@
 </li>
 <li><p><a href="#details">Details</a></p>
 <ul>
+<li><p><a href="#headers">Headers</a></p>
+</li>
 <li><p><a href="#validation-sheets">Validation Sheets</a></p>
 </li>
 <li><p><a href="#site-inventory-sheet">Site Inventory Sheet</a></p>
@@ -122,7 +124,9 @@
 </blockquote>
 <p>Don&#39;t hesitate to reach out to me if you have any other issues - always happy to help.</p>
 <h2 id="details">Details</h2>
-<p>There are two main sections that the program runs: completing the validation sheets, all of which are quite similar; and then the site inventory sheet, which is a little different.</p>
+<p>There are a few main sections that the program runs: filling in the headers; completing the validation sheets, all of which are quite similar; completing the site inventory sheet; and completing the work item sheets.</p>
+<h3 id="headers">Headers</h3>
+<p>Immediately after renaming the sheets, the program will attempt to reorganize the columns of all of the sheets to match the prescribed order (found in <code>data-deliverable-tool-x.x.x.jar\dataDeliverableTool\columnHeaders.dat</code>, see <a href="#externalized-strings">Externalized Strings</a> for more). Data should be maintained as long as the first cell in its column is one of the prescribed headers - this is case sensitive, so be careful. Any data not in such a column will be lost in the output file (not the input, of course, that file will remain unchanged).</p>
 <h3 id="validation-sheets">Validation Sheets</h3>
 <p>For the Building, Tower, Grounds, and Tank Validation sheets, the program will first pull the location number (AB######) from column D of each sheet, then compare that to column C from the Workbook Validation sheet. It will pull the relevant information, such as inspection date, CRV Value, Floors, GPS coordinates, etc.; depending on which validation sheet we&#39;re working on at the time, and copy that data back to the deliverable file.</p>
 <h3 id="site-inventory-sheet">Site Inventory Sheet</h3>
@@ -145,6 +149,7 @@
 <h3 id="externalized-strings">Externalized Strings</h3>
 <p>Nearly every user-visible piece of text, both in the GUI and preset values used in the sheets are in a (somewhat) user-editable file - that is, you can edit it without recompiling the java code. You do, though, need to decompress and recompress the contents of the <code>.jar</code> using a tool like <a href="https://www.win-rar.com/">WinRar</a>.</p>
 <p>The externalized strings are found in <code>data-deliverable-tool-x.x.x.jar\dataDeliverableTool\messages.properties</code>. Each is one line, constructed as a key-value pair, where everything to the left of the &#39;=&#39; is the key, used by the program to find the String to use (don&#39;t change that side), and everything to the right can be edited to change what the program uses whenever it references that key. For example, take the line <code>Main.sheet.cost.lineType=MATERIAL</code>. This is what the program will put as the default value in the LINETYPE column of the <code>Cost Data</code> sheet. If you changed that line to <code>Main.sheet.cost.lineType=SomethingElse</code>, then the program would put &quot;SomethingElse&quot; in the LINETYPE column for each row it adds to <code>Cost Data</code>. Be sure to save and recompress the <code>.jar</code> before running.</p>
+<p>A similar method can be used to change the map of sheet names (used for renaming sheets from the old standard), and changing the order and name of the columns in each sheet. This data is found in the files <code>data-deliverable-tool-x.x.x.jar\dataDeliverableTool\newNames.dat</code> and <code>data-deliverable-tool-x.x.x.jar\dataDeliverableTool\columnHeaders.dat</code>, respectively.</p>
 <h3 id="java-code">Java Code</h3>
 <p>The actual code for the project, written in Java, cannot be edited without recompiling the project. Thus, I have provided all my project files in the GitHub repository. The code itself is located within <a href="https://github.com/Jaden-Unruh/Data-Deliverable-Tool/tree/master/src/main/java/dataDeliverableTool">/src/main/java/dataDeliverableTool</a>, with <code>Main.java</code> being the primary program file. To edit these, I would advise cloning the project from GitHub and opening in your preferred IDE, then re-building using a tool like <a href="https://maven.apache.org/">Maven</a>. I have included my <code>pom.xml</code> to facilitate the build.</p>
 <h2 id="in-the-github">In the GitHub</h2>

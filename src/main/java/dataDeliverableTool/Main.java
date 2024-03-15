@@ -13,7 +13,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -21,9 +20,12 @@ import java.net.URL;
 import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -55,7 +57,17 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
  */
 enum InfoText {
 	ERROR, SELECT_PROMPT, DESKTOP, LOAD_SHEETS, INIT, CLOSING, BUILD_VALID, TOWER_VALID, GROUNDS_VALID, SITE_INV, DONE,
-	DEF_DATA, COST_DATA, TANK_VALID
+	DEF_DATA, COST_DATA, TANK_VALID, HEADERS
+}
+
+/**
+ * Sheets of the deliverable file
+ * 
+ * @author Jaden
+ * @since 1.1.0
+ */
+enum Sheet {
+	BUILDING, TANK, TOWER, GROUNDS, ASSET, ORDERS, NEWORDERS, COSTDATA
 }
 
 /**
@@ -68,6 +80,9 @@ enum InfoText {
  */
 public class Main {
 
+	/**
+	 * Converts individual XSSFCell objects into the String excel shows to users
+	 */
 	static final DataFormatter FORMATTER = new DataFormatter();
 
 	/**
@@ -113,12 +128,18 @@ public class Main {
 	static InfoText infoText;
 
 	/**
+	 * Sheet we're currently completing the headers of
+	 */
+	static Sheet headerSheet = Sheet.BUILDING;
+
+	/**
 	 * Writer for generated info text file - only defined in {@link #init()}
 	 */
 	static FileWriter writeToInfo;
-	
+
 	/**
-	 * Time the user clicks 'Run' in nanoseconds measured to some arbitrary moment - used to compute total run time
+	 * Time the user clicks 'Run' in nanoseconds measured to some arbitrary moment -
+	 * used to compute total run time
 	 */
 	static long startTime;
 
@@ -138,6 +159,22 @@ public class Main {
 	static final Pattern RENAME_LINE_PATTERN = Pattern.compile("(.+),(.+)"); //$NON-NLS-1$
 
 	/**
+	 * Regex to pull sheet name and column headers from a line of
+	 * <a href="file:/../resources/columnHeaders.dat">columnHeaders.dat</a>
+	 */
+	static final Pattern COLUMN_HEADER_LINE_PATTERN = Pattern.compile("(.+):(.+)");
+
+	/**
+	 * Mapping of old to new sheet names in the deliverable file
+	 */
+	final static HashMap<String, String> nameMap = new HashMap<String, String>();
+
+	/**
+	 * Mapping of new sheet names to column header array
+	 */
+	final static HashMap<String, String[]> columnMap = new HashMap<String, String[]>();
+
+	/**
 	 * Initializes Data Deliverable tool - creates info file, pulls sheet renaming
 	 * info
 	 * 
@@ -147,16 +184,24 @@ public class Main {
 	private static void init() throws IOException {
 		startTime = System.nanoTime();
 		updateInfo(InfoText.INIT);
-		try (InputStream in = Main.class.getResourceAsStream("newNames.dat"); //$NON-NLS-1$
-				BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+		try (BufferedReader reader = new BufferedReader(
+				new InputStreamReader(Main.class.getResourceAsStream("newNames.dat")))) { //$NON-NLS-1$
 			String[] lines = reader.lines().toArray(String[]::new);
 			for (String line : lines) {
 				Matcher match = RENAME_LINE_PATTERN.matcher(line);
 				if (match.find())
 					nameMap.put(match.group(1), match.group(2));
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
+		}
+
+		try (BufferedReader reader = new BufferedReader(
+				new InputStreamReader(Main.class.getResourceAsStream("columnHeaders.dat")))) { //$NON-NLS-1$
+			String[] lines = reader.lines().toArray(String[]::new);
+			for (String line : lines) {
+				Matcher match = COLUMN_HEADER_LINE_PATTERN.matcher(line);
+				if (match.find())
+					columnMap.put(match.group(1), match.group(2).split(","));
+			}
 		}
 
 		String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss.SSS")); //$NON-NLS-1$
@@ -175,19 +220,21 @@ public class Main {
 	 */
 	private static void terminate() throws IOException {
 		updateInfo(InfoText.CLOSING);
-		FileOutputStream out = new FileOutputStream(selectedFiles[0]);
+		FileOutputStream out = new FileOutputStream(new File(String.format("%s/%s (output).xlsx",
+				selectedFiles[0].getParent(), FileNameUtils.getBaseName(selectedFiles[0].getName()))));
 		deliverableBook.write(out);
 		out.close();
 		deliverableBook.close();
 		workbookBook.close();
-		
+
 		String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss.SSS"));
 		DecimalFormat secondFormatter = new DecimalFormat("#,###.########");
-		
-		double seconds = (double)(System.nanoTime() - startTime) / 1e9;
-		
-		writeToInfo.append(String.format(Messages.getString("Main.infoFile.footer"), dateTime, secondFormatter.format(seconds)));
-		
+
+		double seconds = (double) (System.nanoTime() - startTime) / 1e9;
+
+		writeToInfo.append(
+				String.format(Messages.getString("Main.infoFile.footer"), dateTime, secondFormatter.format(seconds)));
+
 		writeToInfo.close();
 	}
 
@@ -259,6 +306,7 @@ public class Main {
 							init();
 							loadSheets();
 							renameSheets();
+							completeHeaders();
 							buildingValidation();
 							towerValidation();
 							groundsValidation();
@@ -330,6 +378,129 @@ public class Main {
 	}
 
 	/**
+	 * Replaces all the headers for every sheet in the deliverable, correcting them
+	 * to what's in columnHeaders.dat <br>
+	 * Any data already in the deliverable will be kept, as long as it is under a
+	 * correct header - even if it's in the wrong column number(letter). That is,
+	 * data will be moved to the correct column as long as its header is one that is
+	 * meant to be kept. Any data under a header that is not listed in the
+	 * respective row of columnHeaders.dat will be lost in the output (it will
+	 * remain in the input deliverable, which will be left untouched)
+	 * 
+	 * @throws IOException if an attempted write to the info text file fails
+	 */
+	private static void completeHeaders() throws IOException {
+		updateInfo(InfoText.HEADERS);
+
+		updateHeaderSheet(Sheet.BUILDING);
+		String buildingName = getSheetName(Sheet.BUILDING);
+		completeHeadersOnSheet(deliverableBook.getSheet(buildingName), Arrays.asList(columnMap.get(buildingName)));
+
+		updateHeaderSheet(Sheet.TANK);
+		String tankName = getSheetName(Sheet.TANK);
+		completeHeadersOnSheet(deliverableBook.getSheet(tankName), Arrays.asList(columnMap.get(tankName)));
+
+		updateHeaderSheet(Sheet.TOWER);
+		String towerName = getSheetName(Sheet.TOWER);
+		completeHeadersOnSheet(deliverableBook.getSheet(towerName), Arrays.asList(columnMap.get(towerName)));
+
+		updateHeaderSheet(Sheet.GROUNDS);
+		String groundsName = getSheetName(Sheet.GROUNDS);
+		completeHeadersOnSheet(deliverableBook.getSheet(groundsName), Arrays.asList(columnMap.get(groundsName)));
+
+		updateHeaderSheet(Sheet.ASSET);
+		String assetName = getSheetName(Sheet.ASSET);
+		completeHeadersOnSheet(deliverableBook.getSheet(assetName), Arrays.asList(columnMap.get(assetName)));
+
+		updateHeaderSheet(Sheet.ORDERS);
+		String ordersName = getSheetName(Sheet.ORDERS);
+		completeHeadersOnSheet(deliverableBook.getSheet(ordersName), Arrays.asList(columnMap.get(ordersName)));
+
+		updateHeaderSheet(Sheet.NEWORDERS);
+		String newOrdersName = getSheetName(Sheet.NEWORDERS);
+		completeHeadersOnSheet(deliverableBook.getSheet(newOrdersName), Arrays.asList(columnMap.get(newOrdersName)));
+
+		updateHeaderSheet(Sheet.COSTDATA);
+		String costDataName = getSheetName(Sheet.COSTDATA);
+		completeHeadersOnSheet(deliverableBook.getSheet(costDataName), Arrays.asList(columnMap.get(costDataName)));
+	}
+
+	/**
+	 * Replaces the headers on a specific sheet to match the provided list of
+	 * headers, maintaining and moving data to stay in the proper columns.
+	 * 
+	 * @param sheet           the sheet to replace the headers of
+	 * @param sheetNewColumns the new headers to use
+	 * @throws IOException if an attempted write to the info text file fails
+	 * @see Main#completeHeaders()
+	 */
+	private static void completeHeadersOnSheet(XSSFSheet sheet, List<String> sheetNewColumns) throws IOException {
+		HashMap<String, LinkedList<String>> contentsByColumn = new HashMap<String, LinkedList<String>>();
+
+		int currentNumCols = getNumberOfColumns(sheet.getRow(0));
+		int currentNumRows = getNumberOfRows(sheet, 0);
+
+		for (int col = 0; col < currentNumCols; col++) {
+			String firstCell = FORMATTER.formatCellValue(sheet.getRow(0).getCell(col));
+			if (sheetNewColumns.contains(firstCell)) {
+				LinkedList<String> thisColumn = new LinkedList<>();
+				for (int row = 1; row < currentNumRows; row++)
+					thisColumn.offer(FORMATTER.formatCellValue(sheet.getRow(row).getCell(col)));
+				contentsByColumn.put(firstCell, thisColumn);
+			} else
+				writeToInfo.append(String.format(Messages.getString("Main.infoFile.extraCol"), firstCell,
+						getSheetName(headerSheet)));
+		}
+
+		// remove all contents
+		for (int i = 0; i < currentNumRows; i++)
+			sheet.createRow(i);
+
+		for (int col = 0; col < sheetNewColumns.size(); col++) {
+			String header = sheetNewColumns.get(col);
+			sheet.getRow(0).getCell(col).setCellValue(header);
+			LinkedList<String> contents;
+			if ((contents = contentsByColumn.get(header)) != null) {
+				int currentRow = 1;
+				while (contents.peek() != null)
+					sheet.getRow(currentRow++).getCell(col).setCellValue(contents.poll());
+			}
+		}
+	}
+
+	/**
+	 * Gets the number of columns in the row, counting only non-empty cells and
+	 * stopping at the first empty cell
+	 * 
+	 * @param row the row to count the columns in
+	 * @return the number of columns
+	 * @see Main#getNumberOfRows(XSSFSheet, int)
+	 */
+	private static int getNumberOfColumns(XSSFRow row) {
+		int ret = -1;
+		while (FORMATTER.formatCellValue(row.getCell(++ret)).length() != 0)
+			;
+		return ret;
+	}
+
+	/**
+	 * Gets the number of rows in the sheet, counting only non-empty cells in the
+	 * given column and stopping at the first empty cell
+	 * 
+	 * @param sheet the sheet to count the rows of
+	 * @param col   the (0-)index of the column to count in
+	 * @return the number of rows
+	 * @see Main#getNumberOfColumns(XSSFRow)
+	 */
+	private static int getNumberOfRows(XSSFSheet sheet, int col) {
+		int defRows = sheet.getPhysicalNumberOfRows();
+		for (int i = 0; i < defRows; i++)
+			if (FORMATTER.formatCellValue(sheet.getRow(i).getCell(col)).length() == 0)
+				return i + 1;
+		return defRows;
+	}
+
+	/**
 	 * Runs building validation section of program - see github readme for details
 	 * 
 	 * @throws IOException if there's an error writing to the info file - only
@@ -337,8 +508,7 @@ public class Main {
 	 */
 	private static void buildingValidation() throws IOException {
 		updateInfo(InfoText.BUILD_VALID);
-		XSSFSheet buildingSheet = deliverableBook
-				.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")); //$NON-NLS-1$
+		XSSFSheet buildingSheet = deliverableBook.getSheet(getSheetName(Sheet.BUILDING));
 
 		// make a highlighted red style
 		XSSFCellStyle redHighlight = buildingSheet.getRow(0).getCell(0).getCellStyle();
@@ -383,8 +553,7 @@ public class Main {
 	 */
 	private static void towerValidation() throws IOException {
 		updateInfo(InfoText.TOWER_VALID);
-		XSSFSheet towerSheet = deliverableBook
-				.getSheet(Messages.getString("Main.sheetName.deliverable.towerValidation")); //$NON-NLS-1$
+		XSSFSheet towerSheet = deliverableBook.getSheet(getSheetName(Sheet.TOWER));
 
 		int rows = towerSheet.getPhysicalNumberOfRows();
 		for (int i = 1; i < rows; i++) {
@@ -408,8 +577,7 @@ public class Main {
 	 */
 	private static void groundsValidation() throws IOException {
 		updateInfo(InfoText.GROUNDS_VALID);
-		XSSFSheet groundsSheet = deliverableBook
-				.getSheet(Messages.getString("Main.sheetName.deliverable.groundsValidation")); //$NON-NLS-1$
+		XSSFSheet groundsSheet = deliverableBook.getSheet(getSheetName(Sheet.GROUNDS));
 
 		int rows = groundsSheet.getPhysicalNumberOfRows();
 		for (int i = 1; i < rows; i++) {
@@ -433,8 +601,7 @@ public class Main {
 	 */
 	private static void tankValidation() throws IOException {
 		updateInfo(InfoText.TANK_VALID);
-		XSSFSheet groundsSheet = deliverableBook
-				.getSheet(Messages.getString("Main.sheetName.deliverable.tankValidation")); //$NON-NLS-1$
+		XSSFSheet groundsSheet = deliverableBook.getSheet(getSheetName(Sheet.TANK));
 
 		int rows = groundsSheet.getPhysicalNumberOfRows();
 		for (int i = 1; i < rows; i++) {
@@ -455,13 +622,13 @@ public class Main {
 	 */
 	private static void siteInventory() {
 		updateInfo(InfoText.SITE_INV);
-		XSSFSheet inventorySheet = deliverableBook
-				.getSheet(Messages.getString("Main.sheetName.deliverable.assetValidation")); //$NON-NLS-1$
+		XSSFSheet inventorySheet = deliverableBook.getSheet(getSheetName(Sheet.ASSET));
 		XSSFSheet workbookSheet = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.siteInventory")); //$NON-NLS-1$
 
 		HashSet<Integer> rowsToCheck = new HashSet<>();
 		for (int i = 1; i < workbookSheet.getPhysicalNumberOfRows(); i++)
-			rowsToCheck.add(i);
+			if (FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(0)).length() != 0)
+				rowsToCheck.add(i);
 
 		int rows = inventorySheet.getPhysicalNumberOfRows();
 		for (int i = 1; i < rows; i++) {
@@ -481,8 +648,9 @@ public class Main {
 			setCell(workbookRow, 15, activeRow, 13);
 			setCell(workbookRow, 13, activeRow, 14);
 			setCell(workbookRow, 27, activeRow, 15);
-			activeRow.getCell(16).setCellValue(Double.toString(Double.parseDouble(workbookRow.getCell(27).toString())
-					+ Double.parseDouble(workbookRow.getCell(30).toString())));
+			activeRow.getCell(16)
+					.setCellValue(Integer.toString((int) (Double.parseDouble(workbookRow.getCell(27).toString())
+							+ Double.parseDouble(workbookRow.getCell(30).toString()))));
 			setCell(workbookRow, 34, activeRow, 17);
 		}
 
@@ -502,7 +670,10 @@ public class Main {
 			setCell(prevRow, 0, newRow, 0);
 			newRow.getCell(1)
 					.setCellValue(Integer.toString(counter++) + Messages.getString("Main.sheet.newAssetIdSuffix")); //$NON-NLS-1$
-			newRow.getCell(2).setCellValue(locID);
+			newRow.getCell(2).setCellValue(Messages.getString("Main.sheet.IAFMS_LOC_ID")); // TODO building location ID
+																							// - not overall loc id,
+																							// Hoku will add new
+			// column
 			newRow.getCell(4).setCellValue(assetName);
 			newRow.getCell(5).setCellValue(Messages.getString("Main.sheet.operatingText")); //$NON-NLS-1$
 			newRow.getCell(6).setCellValue(Messages.getString("Main.sheet.usage")); // TODO: where does //$NON-NLS-1$
@@ -512,6 +683,15 @@ public class Main {
 			setCell(prevRow, 8, newRow, 8);
 			setCell(workbookRow, 46, newRow, 9);
 			newRow.getCell(11).setCellValue(FORMATTER.formatCellValue(newRow.getCell(0)).substring(3));
+			setCell(workbookRow, 15, newRow, 13);
+			setCell(workbookRow, 14, newRow, 14);
+			setCell(workbookRow, 27, newRow, 15);
+			String cell27 = FORMATTER.formatCellValue(workbookRow.getCell(27)); //TODO this section is really ugly but it's late and I just want it to work so fix later
+			String cell30 = FORMATTER.formatCellValue(workbookRow.getCell(30));
+			newRow.getCell(16).setCellValue(
+					Integer.toString((int) ((cell27.isEmpty() ? 0 : Double.parseDouble(FORMATTER.formatCellValue(workbookRow.getCell(27))))
+							+ (cell30.isEmpty() ? 0 : Double.parseDouble(FORMATTER.formatCellValue(workbookRow.getCell(30)))))));
+			setCell(workbookRow, 34, newRow, 17);
 		}
 	}
 
@@ -522,24 +702,24 @@ public class Main {
 		updateInfo(InfoText.DEF_DATA);
 
 		// Copy from building validation b/c deficiency data might be empty
-		String inspNum = FORMATTER.formatCellValue(deliverableBook
-				.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")).getRow(1).getCell(0));
-		String siteID = FORMATTER.formatCellValue(deliverableBook
-				.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")).getRow(1).getCell(2));
+		String inspNum = FORMATTER
+				.formatCellValue(deliverableBook.getSheet(getSheetName(Sheet.BUILDING)).getRow(1).getCell(0));
+		String siteID = FORMATTER
+				.formatCellValue(deliverableBook.getSheet(getSheetName(Sheet.BUILDING)).getRow(1).getCell(2));
 
-		XSSFSheet defSheet = deliverableBook.getSheet(Messages.getString("Main.sheetName.deliverable.defData"));
+		XSSFSheet defSheet = deliverableBook.getSheet(getSheetName(Sheet.NEWORDERS));
 		XSSFSheet workbookSheet = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.workItems"));
-		
+
 		// check how many rows Deficiency Data has:
 		int startRow = 0;
 		XSSFRow checkRow;
 		while ((checkRow = defSheet.getRow(++startRow)) != null
 				&& FORMATTER.formatCellValue(checkRow.getCell(0)).length() != 0)
 			;
-		
+
 		int rows = workbookSheet.getPhysicalNumberOfRows();
 		for (int i = 0; i < rows; i++) {
-			
+
 			XSSFRow activeRow = defSheet.createRow(i + startRow);
 			XSSFRow workbookRow = workbookSheet.getRow(i + 1);
 
@@ -570,19 +750,20 @@ public class Main {
 	private static void costData() {
 		updateInfo(InfoText.COST_DATA);
 
-		XSSFSheet costSheet = deliverableBook.getSheet(Messages.getString("Main.sheetName.deliverable.costData"));
+		XSSFSheet costSheet = deliverableBook.getSheet(getSheetName(Sheet.COSTDATA));
 		XSSFSheet workbookSheet = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.workItems"));
 
-		String inspNum = FORMATTER.formatCellValue(deliverableBook
-				.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")).getRow(1).getCell(0));
-		String siteID = FORMATTER.formatCellValue(deliverableBook
-				.getSheet(Messages.getString("Main.sheetName.deliverable.buildingValidation")).getRow(1).getCell(2));
+		String inspNum = FORMATTER
+				.formatCellValue(deliverableBook.getSheet(getSheetName(Sheet.BUILDING)).getRow(1).getCell(0));
+		String siteID = FORMATTER
+				.formatCellValue(deliverableBook.getSheet(getSheetName(Sheet.BUILDING)).getRow(1).getCell(2));
 
 		HashSet<Integer> rowsToAdd = new HashSet<>();
 		int rows = workbookSheet.getPhysicalNumberOfRows();
 		for (int i = 1; i < rows; i++)
-			if (getCorrespondingRowNumber(costSheet, FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(7)),
-					5) < 0)
+			if (FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(0)).length() != 0
+					&& getCorrespondingRowNumber(costSheet,
+							FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(7)), 5) < 0)
 				rowsToAdd.add(i);
 
 		Iterator<Integer> it = rowsToAdd.iterator();
@@ -678,11 +859,6 @@ public class Main {
 	}
 
 	/**
-	 * Mapping of old to new sheet names in the deliverable file
-	 */
-	final static HashMap<String, String> nameMap = new HashMap<String, String>();
-
-	/**
 	 * Renames sheets according to the specified mapping - found in file
 	 * <a href="file:/../resources/newNames.dat">newNames.dat</a>
 	 * 
@@ -769,6 +945,49 @@ public class Main {
 			return Messages.getString("Main.infoText.costData"); //$NON-NLS-1$
 		case TANK_VALID:
 			return Messages.getString("Main.infoText.tankValidation"); //$NON-NLS-1$
+		case HEADERS:
+			return String.format(Messages.getString("Main.infoText.headers"), getSheetName(headerSheet));
+		}
+		return null;
+	}
+
+	/**
+	 * Updates the GUI to show the sheet we're currently updating the headers of<br>
+	 * Note that on reasonably fast computers and reasonably small data sets, these
+	 * sheet names will likely switch faster than the user can see them - this is
+	 * mostly in case something gets hung up, to know which sheet the hang happened
+	 * on
+	 * 
+	 * @param sheet the sheet we're currently updating the headers of
+	 */
+	static void updateHeaderSheet(Sheet sheet) {
+		headerSheet = sheet;
+		updateInfo(infoText);
+	}
+
+	/**
+	 * Fetches the String name associated with the given sheet from the messages.properties file
+	 * @param sheet the sheet we want the name of
+	 * @return the String sheet name
+	 */
+	static String getSheetName(Sheet sheet) {
+		switch (sheet) {
+		case BUILDING:
+			return Messages.getString("Main.sheetName.deliverable.buildingValidation"); //$NON-NLS-1$
+		case TANK:
+			return Messages.getString("Main.sheetName.deliverable.tankValidation"); //$NON-NLS-1$
+		case TOWER:
+			return Messages.getString("Main.sheetName.deliverable.towerValidation"); //$NON-NLS-1$
+		case GROUNDS:
+			return Messages.getString("Main.sheetName.deliverable.groundsValidation"); //$NON-NLS-1$
+		case ASSET:
+			return Messages.getString("Main.sheetName.deliverable.assetValidation"); //$NON-NLS-1$
+		case ORDERS:
+			return Messages.getString("Main.sheetName.deliverable.workOrders"); //$NON-NLS-1$
+		case NEWORDERS:
+			return Messages.getString("Main.sheetName.deliverable.defData"); //$NON-NLS-1$
+		case COSTDATA:
+			return Messages.getString("Main.sheetName.deliverable.costData"); //$NON-NLS-1$
 		}
 		return null;
 	}

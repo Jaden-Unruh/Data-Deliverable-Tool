@@ -16,6 +16,8 @@ A tool to process data deliverable files, comparing to content of a supplied wor
 
 - [Details](#details)
   
+  - [Headers](#headers)
+  
   - [Validation Sheets](#validation-sheets)
   
   - [Site Inventory Sheet](#site-inventory-sheet)
@@ -128,7 +130,11 @@ Don't hesitate to reach out to me if you have any other issues - always happy to
 
 ## Details
 
-There are two main sections that the program runs: completing the validation sheets, all of which are quite similar; and then the site inventory sheet, which is a little different.
+There are a few main sections that the program runs: filling in the headers; completing the validation sheets, all of which are quite similar; completing the site inventory sheet; and completing the work item sheets.
+
+### Headers
+
+Immediately after renaming the sheets, the program will attempt to reorganize the columns of all of the sheets to match the prescribed order (found in `data-deliverable-tool-x.x.x.jar\dataDeliverableTool\columnHeaders.dat`, see [Externalized Strings](#externalized-strings) for more). Data should be maintained as long as the first cell in its column is one of the prescribed headers - this is case sensitive, so be careful. Any data not in such a column will be lost in the output file (not the input, of course, that file will remain unchanged).
 
 ### Validation Sheets
 
@@ -165,6 +171,8 @@ The `.JAR` file is compiled and compressed, meaning all the code is not human-re
 Nearly every user-visible piece of text, both in the GUI and preset values used in the sheets are in a (somewhat) user-editable file - that is, you can edit it without recompiling the java code. You do, though, need to decompress and recompress the contents of the `.jar` using a tool like [WinRar](https://www.win-rar.com/).
 
 The externalized strings are found in `data-deliverable-tool-x.x.x.jar\dataDeliverableTool\messages.properties`. Each is one line, constructed as a key-value pair, where everything to the left of the '=' is the key, used by the program to find the String to use (don't change that side), and everything to the right can be edited to change what the program uses whenever it references that key. For example, take the line `Main.sheet.cost.lineType=MATERIAL`. This is what the program will put as the default value in the LINETYPE column of the `Cost Data` sheet. If you changed that line to `Main.sheet.cost.lineType=SomethingElse`, then the program would put "SomethingElse" in the LINETYPE column for each row it adds to `Cost Data`. Be sure to save and recompress the `.jar` before running.
+
+A similar method can be used to change the map of sheet names (used for renaming sheets from the old standard), and changing the order and name of the columns in each sheet. This data is found in the files `data-deliverable-tool-x.x.x.jar\dataDeliverableTool\newNames.dat` and `data-deliverable-tool-x.x.x.jar\dataDeliverableTool\columnHeaders.dat`, respectively.
 
 ### Java Code
 
