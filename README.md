@@ -58,7 +58,7 @@ After double-clicking the `.jar`, a window titled "Data Deliverable Tool" will o
    
    * Click on the select button and, as above, select a workbook spreadsheet (`Workbook.xlsx`). Again, this must be a `*.xlsx` file, and should have contents as described [below](#workbook-sheet).
 
-The other contents of the window are the `Close`, `Run`, and `Help` buttons. Close and run are self-explanatory, Help opens a brief dialogue describing what I've written above, with a prompt to go to the Github page for this extended README.
+The other contents of the window are the `Close`, `Run`, `Open deliverable location` and `Help` buttons. Close and run are self-explanatory. Help opens a brief dialogue describing what I've written above, with a prompt to go to the Github page for this extended README. Open deliverable location is initially disabled, but enables once a deliverable file is selected. It opens the Windows file explorer to the parent folder of the selected deliverable file; this is also where the output deliverable will be placed.
 
 ### Deliverable File
 

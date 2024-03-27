@@ -34,6 +34,9 @@ class SelectButton extends JButton {
 						if (returnVal == JFileChooser.APPROVE_OPTION) {
 							Main.selectedFiles[whichSelect] = fc.getSelectedFile();
 							rename(fc.getSelectedFile().getName());
+							
+							if (whichSelect == 0)
+								Main.open.setEnabled(true);
 						}
 						deSelected();
 						return null;

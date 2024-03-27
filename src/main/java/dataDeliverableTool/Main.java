@@ -89,6 +89,11 @@ public class Main {
 	 * Primary GUI window
 	 */
 	static JFrame window;
+	
+	/**
+	 * Button to open containing folder for input deliverable - must not be private so it can be enabled when file is selected
+	 */
+	static JButton open;
 
 	/**
 	 * Files currently selected - updates every time the user presses 'ok' within a
@@ -248,27 +253,31 @@ public class Main {
 
 		window.add(new JLabel(Messages.getString("Main.window.CAFilePrompt")), simpleConstraints(0, 0, 2, 1)); //$NON-NLS-1$
 		JButton selectDeliverable = new SelectButton(0);
-		window.add(selectDeliverable, simpleConstraints(2, 0, 1, 1));
+		window.add(selectDeliverable, simpleConstraints(2, 0, 2, 1));
 
 		window.add(new JLabel(Messages.getString("Main.window.workbookFilePrompt")), simpleConstraints(0, 1, 2, 1)); //$NON-NLS-1$
 		JButton selectWorkbook = new SelectButton(1);
-		window.add(selectWorkbook, simpleConstraints(2, 1, 1, 1));
+		window.add(selectWorkbook, simpleConstraints(2, 1, 2, 1));
 
 		window.add(new JLabel(Messages.getString("Main.window.locIDPrompt")), simpleConstraints(0, 2, 2, 1));
 
 		locationEntry = new EntryField(LOCATION_REGEX, Messages.getString("Main.window.locIDDefText")); //$NON-NLS-1$
-		window.add(locationEntry, simpleConstraints(2, 2, 1, 1));
+		window.add(locationEntry, simpleConstraints(2, 2, 2, 1));
 
-		window.add(info, simpleConstraints(0, 3, 3, 1));
+		window.add(info, simpleConstraints(0, 3, 4, 1));
 
 		JButton close = new JButton(Messages.getString("Main.window.close")); //$NON-NLS-1$
 		window.add(close, simpleConstraints(0, 4, 1, 1));
 
 		JButton help = new JButton(Messages.getString("Main.window.help")); //$NON-NLS-1$
 		window.add(help, simpleConstraints(1, 4, 1, 1));
+		
+		open = new JButton(Messages.getString("Main.window.open")); //$NON-NLS-1$
+		window.add(open, simpleConstraints(2, 4, 1, 1));
+		open.setEnabled(false);
 
 		final JButton run = new JButton(Messages.getString("Main.window.run")); //$NON-NLS-1$
-		window.add(run, simpleConstraints(2, 4, 1, 1));
+		window.add(run, simpleConstraints(3, 4, 1, 1));
 
 		close.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -292,6 +301,16 @@ public class Main {
 						}
 					else
 						updateInfo(InfoText.DESKTOP);
+				}
+			}
+		});
+		
+		open.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					Desktop.getDesktop().open(selectedFiles[0].getParentFile());
+				} catch (IOException e1) {
+					showErrorMessage(e1);
 				}
 			}
 		});
@@ -326,28 +345,9 @@ public class Main {
 						protected void done() {
 							try {
 								get();
-							} catch (InterruptedException e) {
-								e.printStackTrace();
-							} catch (ExecutionException e) {
-								e.getCause().printStackTrace();
-								String[] choices = { Messages.getString("Main.window.error.close"), //$NON-NLS-1$
-										Messages.getString("Main.window.error.more") }; //$NON-NLS-1$
-								updateInfo(InfoText.ERROR);
+							} catch (InterruptedException | ExecutionException e) {
 								run.setEnabled(true);
-								if (JOptionPane.showOptionDialog(window,
-										String.format(Messages.getString("Main.window.error.header"), //$NON-NLS-1$
-												e.getCause().toString()),
-										"Error", JOptionPane.DEFAULT_OPTION, JOptionPane.ERROR_MESSAGE, null, choices, //$NON-NLS-1$
-										choices[0]) == 1) {
-									StringWriter sw = new StringWriter();
-									e.printStackTrace(new PrintWriter(sw));
-									JTextArea jta = new JTextArea(25, 50);
-									jta.setText(
-											String.format(Messages.getString("Main.window.error.fst"), sw.toString())); //$NON-NLS-1$
-									jta.setEditable(false);
-									JOptionPane.showMessageDialog(window, new JScrollPane(jta), "Error", //$NON-NLS-1$
-											JOptionPane.ERROR_MESSAGE);
-								}
+								showErrorMessage(e);
 							}
 						}
 					};
@@ -360,6 +360,20 @@ public class Main {
 
 		window.pack();
 		window.setVisible(true);
+	}
+	
+	private static void showErrorMessage(Exception e) {
+		e.printStackTrace();
+		String[] choices = { Messages.getString("Main.window.error.close"), Messages.getString("Main.window.error.more") };
+		updateInfo(InfoText.ERROR);
+		if (JOptionPane.showOptionDialog(window, String.format(Messages.getString("Main.window.error.header"), e.toString()), "Error", JOptionPane.DEFAULT_OPTION, JOptionPane.ERROR_MESSAGE, null, choices, choices[0]) == 1) {
+			StringWriter sw = new StringWriter();
+			e.printStackTrace(new PrintWriter(sw));
+			JTextArea jta = new JTextArea(25, 50);
+			jta.setText(String.format(Messages.getString("Main.window.error.fst"), sw.toString()));
+			jta.setEditable(false);
+			JOptionPane.showMessageDialog(window,  new JScrollPane(jta), "Error", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
 	/**
@@ -648,14 +662,15 @@ public class Main {
 			setCell(workbookRow, 15, activeRow, 13);
 			setCell(workbookRow, 13, activeRow, 14);
 			setCell(workbookRow, 27, activeRow, 15);
-			activeRow.getCell(16)
-					.setCellValue(Integer.toString((int) (Double.parseDouble(workbookRow.getCell(27).toString())
-							+ Double.parseDouble(workbookRow.getCell(30).toString()))));
+			String cell27 = FORMATTER.formatCellValue(workbookRow.getCell(27)); //TODO this section is kinda ugly but it's late and I just want it to work so fix later
+			String cell30 = FORMATTER.formatCellValue(workbookRow.getCell(30));
+			activeRow.getCell(16).setCellValue(
+					Integer.toString((int) ((cell27.isEmpty() ? 0 : Double.parseDouble(cell27))
+							+ (cell30.isEmpty() ? 0 : Double.parseDouble(cell30)))));
 			setCell(workbookRow, 34, activeRow, 17);
 		}
 
 		Iterator<Integer> it = rowsToCheck.iterator(); // Item only on worksheet, not on delivarable
-		String locID = locationEntry.getText();
 		int counter = 1;
 		while (it.hasNext()) {
 			int currentRow = inventorySheet.getPhysicalNumberOfRows();
@@ -665,14 +680,13 @@ public class Main {
 			XSSFRow workbookRow = workbookSheet.getRow(i);
 
 			String assetName = FORMATTER.formatCellValue(workbookRow.getCell(7));
-			String buildingName = FORMATTER.formatCellValue(workbookRow.getCell(3));
+			String propRecId = FORMATTER.formatCellValue(workbookRow.getCell(51));
 
 			setCell(prevRow, 0, newRow, 0);
 			newRow.getCell(1)
 					.setCellValue(Integer.toString(counter++) + Messages.getString("Main.sheet.newAssetIdSuffix")); //$NON-NLS-1$
-			newRow.getCell(2).setCellValue(Messages.getString("Main.sheet.IAFMS_LOC_ID")); // TODO building location ID
-																							// - not overall loc id,
-																							// Hoku will add new
+			newRow.getCell(2).setCellValue(propRecId);
+			
 			// column
 			newRow.getCell(4).setCellValue(assetName);
 			newRow.getCell(5).setCellValue(Messages.getString("Main.sheet.operatingText")); //$NON-NLS-1$
@@ -686,11 +700,11 @@ public class Main {
 			setCell(workbookRow, 15, newRow, 13);
 			setCell(workbookRow, 14, newRow, 14);
 			setCell(workbookRow, 27, newRow, 15);
-			String cell27 = FORMATTER.formatCellValue(workbookRow.getCell(27)); //TODO this section is really ugly but it's late and I just want it to work so fix later
+			String cell27 = FORMATTER.formatCellValue(workbookRow.getCell(27)); //TODO this section is kinda ugly but it's late and I just want it to work so fix later
 			String cell30 = FORMATTER.formatCellValue(workbookRow.getCell(30));
 			newRow.getCell(16).setCellValue(
-					Integer.toString((int) ((cell27.isEmpty() ? 0 : Double.parseDouble(FORMATTER.formatCellValue(workbookRow.getCell(27))))
-							+ (cell30.isEmpty() ? 0 : Double.parseDouble(FORMATTER.formatCellValue(workbookRow.getCell(30)))))));
+					Integer.toString((int) ((cell27.isEmpty() ? 0 : Double.parseDouble(cell27))
+							+ (cell30.isEmpty() ? 0 : Double.parseDouble(cell30)))));
 			setCell(workbookRow, 34, newRow, 17);
 		}
 	}
