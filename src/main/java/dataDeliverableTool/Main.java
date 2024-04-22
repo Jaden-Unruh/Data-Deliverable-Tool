@@ -40,6 +40,7 @@ import javax.swing.SwingWorker;
 import javax.swing.WindowConstants;
 
 import org.apache.commons.compress.utils.FileNameUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFCellStyle;
@@ -67,7 +68,7 @@ enum InfoText {
  * @since 1.1.0
  */
 enum Sheet {
-	BUILDING, TANK, TOWER, GROUNDS, ASSET, ORDERS, NEWORDERS, COSTDATA
+	BUILDING, TANK, TOWER, GROUNDS, ASSET, WOL, ORDERS, NEWORDERS, COSTDATA
 }
 
 /**
@@ -178,6 +179,11 @@ public class Main {
 	 * Mapping of new sheet names to column header array
 	 */
 	final static HashMap<String, String[]> columnMap = new HashMap<String, String[]>();
+	
+	/**
+	 * The names of all the sheets we need in the deliverable, in order
+	 */
+	static String[] deliverableSheetNames;
 
 	/**
 	 * Initializes Data Deliverable tool - creates info file, pulls sheet renaming
@@ -207,6 +213,11 @@ public class Main {
 				if (match.find())
 					columnMap.put(match.group(1), match.group(2).split(","));
 			}
+		}
+		
+		try (BufferedReader reader = new BufferedReader(
+				new InputStreamReader(Main.class.getResourceAsStream("SheetNames.dat")))) {
+			deliverableSheetNames = reader.lines().toArray(String[]::new);
 		}
 
 		String dateTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss.SSS")); //$NON-NLS-1$
@@ -425,6 +436,10 @@ public class Main {
 		updateHeaderSheet(Sheet.ASSET);
 		String assetName = getSheetName(Sheet.ASSET);
 		completeHeadersOnSheet(deliverableBook.getSheet(assetName), Arrays.asList(columnMap.get(assetName)));
+		
+		updateHeaderSheet(Sheet.WOL);
+		String workOrderList = getSheetName(Sheet.WOL);
+		completeHeadersOnSheet(deliverableBook.getSheet(workOrderList), Arrays.asList(columnMap.get(workOrderList)));
 
 		updateHeaderSheet(Sheet.ORDERS);
 		String ordersName = getSheetName(Sheet.ORDERS);
@@ -644,6 +659,9 @@ public class Main {
 			if (FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(0)).length() != 0)
 				rowsToCheck.add(i);
 
+		String inspectionDateYYYYMMDD = FORMATTER.formatCellValue(inventorySheet.getRow(1).getCell(0)).substring(3); //YYYY-MM-DD
+		String inspectionDateMMDDYYYY = inspectionDateYYYYMMDD.substring(5, 7) + "/" + inspectionDateYYYYMMDD.substring(8, 10) + "/" + inspectionDateYYYYMMDD.substring(0, 4); //MM/DD/YYYY
+		
 		int rows = inventorySheet.getPhysicalNumberOfRows();
 		for (int i = 1; i < rows; i++) {
 			XSSFRow activeRow = inventorySheet.getRow(i);
@@ -662,15 +680,13 @@ public class Main {
 			setCell(workbookRow, 15, activeRow, 13);
 			setCell(workbookRow, 13, activeRow, 14);
 			setCell(workbookRow, 27, activeRow, 15);
-			String cell27 = FORMATTER.formatCellValue(workbookRow.getCell(27)); //TODO this section is kinda ugly but it's late and I just want it to work so fix later
-			String cell30 = FORMATTER.formatCellValue(workbookRow.getCell(30));
-			activeRow.getCell(16).setCellValue(
-					Integer.toString((int) ((cell27.isEmpty() ? 0 : Double.parseDouble(cell27))
-							+ (cell30.isEmpty() ? 0 : Double.parseDouble(cell30)))));
+			activeRow.getCell(16).setCellValue(Integer.toString(Integer.parseInt(FORMATTER.formatCellValue(workbookRow.getCell(35))) + Integer.parseInt(FORMATTER.formatCellValue(activeRow.getCell(0)).substring(3, 7))));
 			setCell(workbookRow, 34, activeRow, 17);
+			if (FORMATTER.formatCellValue(activeRow.getCell(5)).toLowerCase().equals(Messages.getString("Main.sheet.operatingTextLC")))
+				activeRow.getCell(11).setCellValue(inspectionDateMMDDYYYY);
 		}
 
-		Iterator<Integer> it = rowsToCheck.iterator(); // Item only on worksheet, not on delivarable
+		Iterator<Integer> it = rowsToCheck.iterator(); // Item only on workbook, not on delivarable
 		int counter = 1;
 		while (it.hasNext()) {
 			int currentRow = inventorySheet.getPhysicalNumberOfRows();
@@ -696,15 +712,11 @@ public class Main {
 			newRow.getCell(7).setCellValue(Messages.getString("Main.sheet.facilitiesText")); //$NON-NLS-1$
 			setCell(prevRow, 8, newRow, 8);
 			setCell(workbookRow, 46, newRow, 9);
-			newRow.getCell(11).setCellValue(FORMATTER.formatCellValue(newRow.getCell(0)).substring(3));
+			newRow.getCell(11).setCellValue(inspectionDateMMDDYYYY);
 			setCell(workbookRow, 15, newRow, 13);
 			setCell(workbookRow, 14, newRow, 14);
 			setCell(workbookRow, 27, newRow, 15);
-			String cell27 = FORMATTER.formatCellValue(workbookRow.getCell(27)); //TODO this section is kinda ugly but it's late and I just want it to work so fix later
-			String cell30 = FORMATTER.formatCellValue(workbookRow.getCell(30));
-			newRow.getCell(16).setCellValue(
-					Integer.toString((int) ((cell27.isEmpty() ? 0 : Double.parseDouble(cell27))
-							+ (cell30.isEmpty() ? 0 : Double.parseDouble(cell30)))));
+			newRow.getCell(16).setCellValue(Integer.toString(NumberUtils.toInt(FORMATTER.formatCellValue(workbookRow.getCell(35)), 0) + NumberUtils.toInt(FORMATTER.formatCellValue(newRow.getCell(0)).substring(3, 7)), 0));
 			setCell(workbookRow, 34, newRow, 17);
 		}
 	}
@@ -745,7 +757,8 @@ public class Main {
 			setCell(workbookRow, 28, activeRow, 2);
 			setCell(workbookRow, 27, activeRow, 3);
 			activeRow.getCell(4).setCellValue(siteID);
-			activeRow.getCell(7).setCellValue(Messages.getString("Main.sheet.deficiency.status"));
+			activeRow.getCell(5).setCellValue(Messages.getString("Main.sheet.deficiency.status"));
+			activeRow.getCell(7).setCellValue(Messages.getString("Main.sheet.deficiency.UK"));
 			setCell(workbookRow, 8, activeRow, 8);
 			setCell(workbookRow, 13, activeRow, 10, 0, 1);
 			setCell(workbookRow, 13, activeRow, 11, 2, 3);
@@ -834,8 +847,12 @@ public class Main {
 	 */
 	private static void setCell(XSSFRow readRow, int readCol, XSSFRow writeRow, int writeCol, int startIndex,
 			int endIndex) {
-		writeRow.getCell(writeCol)
+		try {
+			writeRow.getCell(writeCol)
 				.setCellValue(FORMATTER.formatCellValue(readRow.getCell(readCol)).substring(startIndex, endIndex));
+		} catch (StringIndexOutOfBoundsException e) {
+			return;
+		}
 	}
 
 	/**
@@ -886,6 +903,14 @@ public class Main {
 			else
 				writeToInfo.append(String.format(Messages.getString("Main.infoFile.sheetNotFound"), sheetName)); //$NON-NLS-1$
 		}
+		for (int i = 0; i < deliverableSheetNames.length; i++) {
+			if (hasSheet(deliverableBook, deliverableSheetNames[i])) {
+				deliverableBook.setSheetOrder(deliverableSheetNames[i], i);
+			} else {
+				deliverableBook.createSheet(deliverableSheetNames[i]).createRow(0).createCell(0);
+				deliverableBook.setSheetOrder(deliverableSheetNames[i], i);
+			}
+		}
 	}
 
 	/**
@@ -898,6 +923,16 @@ public class Main {
 				&& FileNameUtils.getExtension(selectedFiles[1].getName()).equals("xlsx"); //$NON-NLS-1$
 	}
 
+	/**
+	 * Checks if the given book has a sheet with the given name
+	 * @param book the workbook to check
+	 * @param sheetName the sheet name to check
+	 * @return true if the book has a sheet by that name
+	 */
+	private static boolean hasSheet(XSSFWorkbook book, String sheetName) {
+		return (book.getSheet(sheetName) == null) ? false : true;
+	}
+	
 	/**
 	 * Creates a GridBagConstraints object with the given attributes, and all other
 	 * values set to defaults
@@ -996,6 +1031,8 @@ public class Main {
 			return Messages.getString("Main.sheetName.deliverable.groundsValidation"); //$NON-NLS-1$
 		case ASSET:
 			return Messages.getString("Main.sheetName.deliverable.assetValidation"); //$NON-NLS-1$
+		case WOL:
+			return Messages.getString("Main.sheetName.deliverable.workOrderList"); //$NON-NLS-1$
 		case ORDERS:
 			return Messages.getString("Main.sheetName.deliverable.workOrders"); //$NON-NLS-1$
 		case NEWORDERS:
