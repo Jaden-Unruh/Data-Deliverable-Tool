@@ -32,6 +32,8 @@ A tool to process data deliverable files, comparing to content of a supplied wor
   
   - [Externalized Strings](#externalized-strings)
   
+  - [Externalized Values](#externalized-values)
+  
   - [Java Code](#java-code)
 
 - [In the GitHub](#in-the-github)
@@ -140,6 +142,8 @@ Immediately after renaming the sheets, the program will attempt to reorganize th
 
 For the Building, Tower, Grounds, and Tank Validation sheets, the program will first pull the location number (AB######) from column D of each sheet, then compare that to column C from the Workbook Validation sheet. It will pull the relevant information, such as inspection date, CRV Value, Floors, GPS coordinates, etc.; depending on which validation sheet we're working on at the time, and copy that data back to the deliverable file.
 
+Note, on the building validation sheet, that latitude and longitude values will be 'trimmed' - that is, they will never be copied with more than 11 characters (including the `-` and `.` if applicable), and they will be rounded to reach that point. For example, `-120.39475859` will be copied as `-120.394759`. The number of digits can be changed in `values.properties`, see [Externalized Values](#externalized-values).
+
 ### Site Inventory Sheet
 
 For the site inventory sheet, things are a little more complicated. We start by pulling the Asset ID from column B of the Site Inventory sheet in the deliverable. Then, we do one of the following:
@@ -173,6 +177,16 @@ Nearly every user-visible piece of text, both in the GUI and preset values used 
 The externalized strings are found in `data-deliverable-tool-x.x.x.jar\dataDeliverableTool\messages.properties`. Each is one line, constructed as a key-value pair, where everything to the left of the '=' is the key, used by the program to find the String to use (don't change that side), and everything to the right can be edited to change what the program uses whenever it references that key. For example, take the line `Main.sheet.cost.lineType=MATERIAL`. This is what the program will put as the default value in the LINETYPE column of the `Cost Data` sheet. If you changed that line to `Main.sheet.cost.lineType=SomethingElse`, then the program would put "SomethingElse" in the LINETYPE column for each row it adds to `Cost Data`. Be sure to save and recompress the `.jar` before running.
 
 A similar method can be used to change the map of sheet names (used for renaming sheets from the old standard), and changing the order and name of the columns in each sheet. This data is found in the files `data-deliverable-tool-x.x.x.jar\dataDeliverableTool\newNames.dat` and `data-deliverable-tool-x.x.x.jar\dataDeliverableTool\columnHeaders.dat`, respectively.
+
+### Externalized Values
+
+Many important numbers, notably every column number used by the program, is in another (somewhat) user-editable file. Again, like the externalized strings, you have to decompress the `.jar`.
+
+**NOTE: Column numbers are zero-indexed** - this means that the first column, column A, has index 0, and B is 1.
+
+These values are found in `data-deliverable-tool-x.x.x.jar\dataDeliverableTool\values.properties`. As above, each is one line constructed as a key-value pair. Take the line `colNum.delv.aval.inspDate=11`, for example. The key is `colNum.delv.aval.inspDate`, so we're defining a **col**umn **num**ber on the **del**i**v**erable workbook, on the **a**sset **val**idation sheet, and that is the **insp**ection **date**. That value is **11**, meaning we're looking at the 11-index column, which is column **L** (although this is the 12th column, it has index 11, since we start at 0).
+
+If columns ever get moved around, these values can be easily changed without changing the code itself.
 
 ### Java Code
 
