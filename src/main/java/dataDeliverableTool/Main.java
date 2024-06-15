@@ -221,7 +221,7 @@ public class Main {
 		}
 
 		try (BufferedReader reader = new BufferedReader(
-				new InputStreamReader(Main.class.getResourceAsStream("SheetNames.dat")))) {
+				new InputStreamReader(Main.class.getResourceAsStream("sheetNames.dat")))) {
 			deliverableSheetNames = reader.lines().toArray(String[]::new);
 		}
 
