@@ -573,6 +573,7 @@ public class Main {
 		
 		try {
 			INSPECTION_DATE = DateFormat.getDateInstance(DateFormat.SHORT, Locale.US).format(workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")).getRow(1).getCell(get("colNum.wkbk.btg.inspDate")).getDateCellValue());
+			INSPECTION_DATE = INSPECTION_DATE.substring(0, INSPECTION_DATE.lastIndexOf('/') + 1) + "20" + INSPECTION_DATE.substring(INSPECTION_DATE.lastIndexOf('/') + 1);
 		} catch (IllegalStateException e) {
 			INSPECTION_DATE = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")).getRow(1).getCell(get("colNum.wkbk.btg.inspDate")).getRawValue();
 		}
@@ -713,6 +714,8 @@ public class Main {
 			String maximoId = activeRow.getCell(get("colNum.delv.aval.maximoID")).toString();
 			int workbookRowNum = getCorrespondingRowNumber(workbookSheet, maximoId, get("colNum.wkbk.sinv.maximoID"));
 
+			activeRow.getCell(get("colNum.delv.aval.inspDate")).setCellValue(INSPECTION_DATE);
+
 			if (workbookRowNum == -1) {  // Maximo ID on deliverable, not in workbook
 				if (!FORMATTER.formatCellValue(activeRow.getCell(get("colNum.delv.aval.status"))).toLowerCase().equals(Messages.getString("Main.sheet.disposalLC")))
 					activeRow.getCell(get("colNum.delv.aval.status")).setCellValue(Messages.getString("Main.sheet.decommissionedText")); //$NON-NLS-1$
@@ -732,8 +735,6 @@ public class Main {
 			activeRow.getCell(get("colNum.delv.aval.EEOL"))
 					.setCellValue(Integer.toString(Math.round(NumberUtils.toFloat(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.sinv.RSL"))), 0))
 							+ NumberUtils.toInt(FORMATTER.formatCellValue(activeRow.getCell(get("colNum.delv.aval.inspNum"))).substring(3, 7), 0)));
-			
-			activeRow.getCell(get("colNum.delv.aval.inspDate")).setCellValue(INSPECTION_DATE);
 		}
 
 		Iterator<Integer> it = rowsToCheck.iterator(); // Item only on workbook, not on delivarable
