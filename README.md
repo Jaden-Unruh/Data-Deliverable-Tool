@@ -102,9 +102,9 @@ Ensure you've installed Java as specified under [Setup](#setup-&-requirements). 
 
 1. Press Win+R, type `cmd` and press enter - this will open a command prompt window
 2. Type `java -version` and press enter
-3. If you've installed java as specified, the first line under your typing should read `openjdk version "17.0.8" 2023-07-18`[^2]. If, instead, it says `'java' is not recognized as an internal...` then java is not installed.
+3. If you've installed java as specified, the first line under your typing should read `openjdk version "17.0.8" 2023-07-18`[^1]. If, instead, it says `'java' is not recognized as an internal...` then java is not installed.
 
-[^2]: If you had a version of java other than the one specified in Setup, this may show a different version, but should be similar. However, you probably wouldn't be in this troubleshooting step if this is the case.
+[^1]: If you had a version of java other than the one specified in Setup, this may show a different version, but should be similar. However, you probably wouldn't be in this troubleshooting step if this is the case.
 
 ---
 
