@@ -39,6 +39,7 @@ A tool to process data deliverable files, comparing to content of a supplied wor
 - [In the GitHub](#in-the-github)
 
 - [License](#license)
+  - [Notice](#notice)
 
 ## Setup & Requirements
 
@@ -211,3 +212,33 @@ Everything else - `.settings`, `src`, `target`, `.classpath`, `.project`, and `p
 In my previous tools, I did not include a License, but for this one I decided to - primarily in case I'm not around to maintain the tool in the future. It shouldn't affect any use of the tool within Akana, and doesn't have any impact on the copyright of data edited by the code - only future distributions of the code itself.
 
 Data Deliverable Tool is available under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html) or later. In summary, this code is available to use, copy, and modify, under the condition that all derivative works contianing the code (not including sheets edited with the code) are released under the same license. This project is provided without liability or warranty. See the `LICENSE` file for more.
+
+### Notice
+
+In this project, I used libraries from a few sources, including a few projects from [Apache](https://www.apache.org/). Although freely available to use under the Apache License, section 4(d) of that license requires that the following Notice be included in the documentation:
+
+    =========================================================================
+    ==  NOTICE file corresponding to section 4(d) of the Apache License,   ==
+    ==  Version 2.0, in this case for the Apache XmlBeans distribution.    ==
+    =========================================================================
+
+    This product includes software developed at
+    The Apache Software Foundation (http://www.apache.org/).
+
+    Portions of this software were originally based on the following:
+      - software copyright (c) 2000-2003, BEA Systems, <http://www.bea.com/>.
+    Note: The ASF Secretary has on hand a Software Grant Agreement (SGA) from
+    BEA Systems, Inc. dated 9 Sep 2003 for XMLBeans signed by their EVP/CFO.
+
+    Aside from contributions to the Apache XMLBeans project, this
+    software also includes:
+
+      - one or more source files from the Apache Xerces-J and Apache Axis
+      products, Copyright (c) 1999-2003 Apache Software Foundation
+
+      - W3C XML Schema documents Copyright 2001-2003 (c) World Wide Web
+      Consortium (Massachusetts Institute of Technology, European Research
+      Consortium for Informatics and Mathematics, Keio University)
+
+      - resolver.jar from Apache Xml Commons project,
+      Copyright (c) 2001-2003 Apache Software Foundation
