@@ -556,7 +556,7 @@ public class Main {
 	private static int getNumberOfRows(XSSFSheet sheet, int col) {
 		int defRows = sheet.getPhysicalNumberOfRows();
 		for (int i = 0; i < defRows; i++)
-			if (FORMATTER.formatCellValue(sheet.getRow(i).getCell(col)).length() == 0)
+			if (sheet.getRow(i) == null || FORMATTER.formatCellValue(sheet.getRow(i).getCell(col)).length() == 0)
 				return i + 1;
 		return defRows;
 	}
@@ -705,12 +705,14 @@ public class Main {
 
 		HashSet<Integer> rowsToCheck = new HashSet<>();
 		for (int i = 1; i < workbookSheet.getPhysicalNumberOfRows(); i++)
-			if (FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(0)).length() != 0)
+			if (workbookSheet.getRow(i) != null && FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(0)).length() != 0)
 				rowsToCheck.add(i);
 
 		int rows = inventorySheet.getPhysicalNumberOfRows();
 		for (int i = 1; i < rows; i++) {
 			XSSFRow activeRow = inventorySheet.getRow(i);
+			if (activeRow == null)
+				continue;
 			String maximoId = activeRow.getCell(get("colNum.delv.aval.maximoID")).toString();
 			int workbookRowNum = getCorrespondingRowNumber(workbookSheet, maximoId, get("colNum.wkbk.sinv.maximoID"));
 
@@ -798,7 +800,7 @@ public class Main {
 			XSSFRow activeRow = defSheet.createRow(i + startRow);
 			XSSFRow workbookRow = workbookSheet.getRow(i + 1);
 
-			if (FORMATTER.formatCellValue(workbookRow.getCell(0)).length() == 0)
+			if (workbookRow == null || FORMATTER.formatCellValue(workbookRow.getCell(0)).length() == 0)
 				break;
 
 			activeRow.getCell(get("colNum.delv.nwo.inspNum")).setCellValue(inspNum);
@@ -906,9 +908,6 @@ public class Main {
 				break;
 			}
 		}
-		
-		
-		// TODO something if cell isn't empty/doesn't match new value
 	}
 
 	/**
@@ -989,12 +988,11 @@ public class Main {
 	private static int getCorrespondingRowNumber(XSSFSheet sheet, String value, int matchCol) {
 		int rows = sheet.getPhysicalNumberOfRows();
 		for (int i = 0; i < rows; i++) {
-			try {
-				if (sheet.getRow(i).getCell(matchCol).toString().equals(value))
-					return i;
-			} catch (NullPointerException e) {
+			XSSFRow row = sheet.getRow(i);
+			if (row == null)
 				return -1;
-			}
+			if (row.getCell(matchCol).toString().equals(value))
+				return i;
 		}
 		return -1;
 	}
