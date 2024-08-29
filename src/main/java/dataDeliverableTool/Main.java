@@ -866,6 +866,8 @@ public class Main {
 			setCell(workbookRow, get("colNum.wkbk.items.name"),			activeRow, get("colNum.delv.cost.description"));
 			
 			activeRow.getCell(get("colNum.delv.cost.totalCost")).setCellValue(formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.items.totalCost")))));
+			activeRow.getCell(get("colNum.delv.cost.quantity")).setCellValue("1");
+			activeRow.getCell(get("colNum.delv.cost.unitCost")).setCellValue(activeRow.getCell(get("colNum.delv.cost.totalCost")).getStringCellValue());
 		}
 	}
 
@@ -885,7 +887,7 @@ public class Main {
 	private static void setCell(XSSFRow readRow, int readCol, XSSFRow writeRow, int writeCol) throws IOException {
 		XSSFCell readCell = readRow.getCell(readCol);
 		if (readCell.getCellType() != CellType.FORMULA) {
-			String toWrite = FORMATTER.formatCellValue(readCell);
+			String toWrite = FORMATTER.formatCellValue(readCell).replaceAll("\\$", "");
 			String oldValue = FORMATTER.formatCellValue(writeRow.getCell(writeCol));
 			
 			if (toWrite.equals(oldValue) || toWrite.length() == 0)
@@ -894,7 +896,7 @@ public class Main {
 			if (oldValue.length() == 0)
 				writeRow.getCell(writeCol).setCellValue(FORMATTER.formatCellValue(readCell));
 			else
-				writeToInfo.append(String.format(Messages.getString("Main.infoText.overWriteCell"), writeRow.getSheet().getSheetName(), writeRow.getRowNum(), writeCol, oldValue, toWrite));
+				writeToInfo.append(String.format(Messages.getString("Main.infoFile.overWriteCell"), writeRow.getSheet().getSheetName(), writeRow.getRowNum(), writeCol, oldValue, toWrite));
 		} else {
 			switch(readCell.getCachedFormulaResultType()) {
 			case NUMERIC:
