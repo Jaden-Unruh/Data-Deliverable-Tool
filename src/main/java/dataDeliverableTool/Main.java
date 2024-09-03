@@ -155,9 +155,10 @@ public class Main {
 	 * used to compute total run time
 	 */
 	static long startTime;
-	
+
 	/**
-	 * Inspection date, read from line 1 of BTG Validation on workbook. Treat it as final, it's only assigned once.
+	 * Inspection date, read from line 1 of BTG Validation on workbook. Treat it as
+	 * final, it's only assigned once.
 	 */
 	static String INSPECTION_DATE;
 
@@ -335,7 +336,8 @@ public class Main {
 				} catch (IOException e1) {
 					try {
 						showErrorMessage(e1);
-					} catch (IOException e2) {}
+					} catch (IOException e2) {
+					}
 				}
 			}
 		});
@@ -374,7 +376,8 @@ public class Main {
 								run.setEnabled(true);
 								try {
 									showErrorMessage(e);
-								} catch (IOException e1) {}
+								} catch (IOException e1) {
+								}
 							}
 						}
 					};
@@ -570,14 +573,18 @@ public class Main {
 	private static void buildingValidation() throws IOException {
 		updateInfo(InfoText.BUILD_VALID);
 		XSSFSheet buildingSheet = deliverableBook.getSheet(getSheetName(Sheet.BUILDING));
-		
+
 		try {
-			INSPECTION_DATE = DateFormat.getDateInstance(DateFormat.SHORT, Locale.US).format(workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")).getRow(1).getCell(get("colNum.wkbk.btg.inspDate")).getDateCellValue());
-			INSPECTION_DATE = INSPECTION_DATE.substring(0, INSPECTION_DATE.lastIndexOf('/') + 1) + "20" + INSPECTION_DATE.substring(INSPECTION_DATE.lastIndexOf('/') + 1);
+			INSPECTION_DATE = DateFormat.getDateInstance(DateFormat.SHORT, Locale.US)
+					.format(workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")).getRow(1)
+							.getCell(get("colNum.wkbk.btg.inspDate")).getDateCellValue());
+			INSPECTION_DATE = INSPECTION_DATE.substring(0, INSPECTION_DATE.lastIndexOf('/') + 1) + "20"
+					+ INSPECTION_DATE.substring(INSPECTION_DATE.lastIndexOf('/') + 1);
 		} catch (IllegalStateException e) {
-			INSPECTION_DATE = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")).getRow(1).getCell(get("colNum.wkbk.btg.inspDate")).getRawValue();
+			INSPECTION_DATE = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation"))
+					.getRow(1).getCell(get("colNum.wkbk.btg.inspDate")).getRawValue();
 		}
-		
+
 		// make a highlighted red style
 		XSSFCellStyle redHighlight = buildingSheet.getRow(0).getCell(0).getCellStyle();
 		final byte[] RED = { Byte.MAX_VALUE, 0, 0 };
@@ -591,27 +598,33 @@ public class Main {
 					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, //$NON-NLS-1$
 					get("colNum.wkbk.btg.locID"));
 			if (workbookRow != null) {
-				setCell(workbookRow, get("colNum.wkbk.btg.yearBuilt"),		activeRow, get("colNum.delv.bval.yearBuilt"));
-				setCell(workbookRow, get("colNum.wkbk.btg.floorsAbove"),	activeRow, get("colNum.delv.bval.floorsAbove"));
-				setCell(workbookRow, get("colNum.wkbk.btg.floorsBelow"),	activeRow, get("colNum.delv.bval.floorsBelow"));
-				setCell(workbookRow, get("colNum.wkbk.btg.portable"),		activeRow, get("colNum.delv.bval.portable"));
-				setCell(workbookRow, get("colNum.wkbk.btg.lat"),			activeRow, get("colNum.delv.bval.lat"), true);
-				setCell(workbookRow, get("colNum.wkbk.btg.lon"),			activeRow, get("colNum.delv.bval.lon"), true);
-				setCell(workbookRow, get("colNum.wkbk.btg.use"),			activeRow, get("colNum.delv.bval.use"));
+				setCell(workbookRow, get("colNum.wkbk.btg.yearBuilt"), activeRow, get("colNum.delv.bval.yearBuilt"));
+				setCell(workbookRow, get("colNum.wkbk.btg.floorsAbove"), activeRow,
+						get("colNum.delv.bval.floorsAbove"));
+				setCell(workbookRow, get("colNum.wkbk.btg.floorsBelow"), activeRow,
+						get("colNum.delv.bval.floorsBelow"));
+				setCell(workbookRow, get("colNum.wkbk.btg.portable"), activeRow, get("colNum.delv.bval.portable"));
+				setCell(workbookRow, get("colNum.wkbk.btg.lat"), activeRow, get("colNum.delv.bval.lat"), true);
+				setCell(workbookRow, get("colNum.wkbk.btg.lon"), activeRow, get("colNum.delv.bval.lon"), true);
+				setCell(workbookRow, get("colNum.wkbk.btg.use"), activeRow, get("colNum.delv.bval.use"));
 
-				activeRow.getCell(get("colNum.delv.bval.crv")).setCellValue(formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.crv")))));
-				
-				if(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.lat"))).length() == 0 && FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.lon"))).length() == 0)
-					activeRow.getCell(get("colNum.delv.bval.gpsNVerif")).setCellValue(Messages.getString("Main.sheet.YES"));
+				activeRow.getCell(get("colNum.delv.bval.crv")).setCellValue(
+						formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.crv")))));
+
+				if (FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.lat"))).length() == 0
+						&& FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.lon"))).length() == 0)
+					activeRow.getCell(get("colNum.delv.bval.gpsNVerif"))
+							.setCellValue(Messages.getString("Main.sheet.YES"));
 				else
-					activeRow.getCell(get("colNum.delv.bval.gpsNVerif")).setCellValue(Messages.getString("Main.sheet.NO"));
+					activeRow.getCell(get("colNum.delv.bval.gpsNVerif"))
+							.setCellValue(Messages.getString("Main.sheet.NO"));
 			} else {
-				
+
 				activeRow.getCell(get("colNum.delv.bval.gpsNVerif")).setCellValue(Messages.getString("Main.sheet.YES"));
-				
+
 				writeToInfo.append(String.format(Messages.getString("Main.infoFile.locNumNotFound"), location));
 			}
-			
+
 			activeRow.getCell(get("colNum.delv.bval.inspDate")).setCellValue(INSPECTION_DATE);
 		}
 	}
@@ -631,9 +644,11 @@ public class Main {
 			XSSFRow activeRow = towerSheet.getRow(i);
 			String location = activeRow.getCell(get("colNum.delv.toval.location")).toString();
 			XSSFRow workbookRow = getCorrespondingRow(
-					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, get("colNum.wkbk.btg.locID")); //$NON-NLS-1$
+					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, //$NON-NLS-1$
+					get("colNum.wkbk.btg.locID"));
 			if (workbookRow != null) {
-				activeRow.getCell(get("colNum.delv.toval.crv")).setCellValue(formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.crv")))));
+				activeRow.getCell(get("colNum.delv.toval.crv")).setCellValue(
+						formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.crv")))));
 			} else {
 				writeToInfo.append(String.format(Messages.getString("Main.infoFile.locNumNotFound"), location)); //$NON-NLS-1$
 			}
@@ -657,13 +672,15 @@ public class Main {
 			XSSFRow activeRow = groundsSheet.getRow(i);
 			String location = activeRow.getCell(get("colNum.delv.gval.location")).toString();
 			XSSFRow workbookRow = getCorrespondingRow(
-					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, get("colNum.wkbk.btg.locID")); //$NON-NLS-1$
+					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, //$NON-NLS-1$
+					get("colNum.wkbk.btg.locID"));
 			if (workbookRow != null) {
-				activeRow.getCell(get("colNum.delv.gval.crv")).setCellValue(formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.crv")))));
+				activeRow.getCell(get("colNum.delv.gval.crv")).setCellValue(
+						formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.crv")))));
 			} else {
 				writeToInfo.append(String.format(Messages.getString("Main.infoFile.locNumNotFound"), location)); //$NON-NLS-1$
 			}
-			
+
 			activeRow.getCell(get("colNum.delv.gval.inspDate")).setCellValue(INSPECTION_DATE);
 		}
 	}
@@ -683,9 +700,11 @@ public class Main {
 			XSSFRow activeRow = groundsSheet.getRow(i);
 			String location = activeRow.getCell(get("colNum.delv.taval.location")).toString();
 			XSSFRow workbookRow = getCorrespondingRow(
-					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, get("colNum.wkbk.btg.locID")); //$NON-NLS-1$
+					workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.btgValidation")), location, //$NON-NLS-1$
+					get("colNum.wkbk.btg.locID"));
 			if (workbookRow != null) {
-				activeRow.getCell(get("colNum.delv.taval.crv")).setCellValue(formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.crv")))));
+				activeRow.getCell(get("colNum.delv.taval.crv")).setCellValue(
+						formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.btg.crv")))));
 			} else {
 				writeToInfo.append(String.format(Messages.getString("Main.infoFile.locNumNotFound"), location)); //$NON-NLS-1$
 			}
@@ -696,6 +715,7 @@ public class Main {
 
 	/**
 	 * Runs site inventory section of the program - see github readme for details
+	 * 
 	 * @throws IOException if there's an error writing to info file
 	 */
 	private static void siteInventory() throws IOException {
@@ -705,7 +725,8 @@ public class Main {
 
 		HashSet<Integer> rowsToCheck = new HashSet<>();
 		for (int i = 1; i < workbookSheet.getPhysicalNumberOfRows(); i++)
-			if (workbookSheet.getRow(i) != null && FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(0)).length() != 0)
+			if (workbookSheet.getRow(i) != null
+					&& FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(0)).length() != 0)
 				rowsToCheck.add(i);
 
 		int rows = inventorySheet.getPhysicalNumberOfRows();
@@ -718,25 +739,33 @@ public class Main {
 
 			activeRow.getCell(get("colNum.delv.aval.inspDate")).setCellValue(INSPECTION_DATE);
 
-			if (workbookRowNum == -1) {  // Maximo ID on deliverable, not in workbook
-				if (!FORMATTER.formatCellValue(activeRow.getCell(get("colNum.delv.aval.status"))).toLowerCase().equals(Messages.getString("Main.sheet.disposalLC")))
-					activeRow.getCell(get("colNum.delv.aval.status")).setCellValue(Messages.getString("Main.sheet.decommissionedText")); //$NON-NLS-1$
+			if (workbookRowNum == -1) { // Maximo ID on deliverable, not in workbook
+				if (!FORMATTER.formatCellValue(activeRow.getCell(get("colNum.delv.aval.status"))).toLowerCase()
+						.equals(Messages.getString("Main.sheet.disposalLC")))
+					activeRow.getCell(get("colNum.delv.aval.status")) //$NON-NLS-1$
+							.setCellValue(Messages.getString("Main.sheet.decommissionedText"));
 				continue;
 			}
 
 			XSSFRow workbookRow = workbookSheet.getRow(workbookRowNum); // Maximo IDs match on deliverable/workbook
 			rowsToCheck.remove(workbookRowNum);
-			if (workbookRow.getCell(get("colNum.wkbk.sinv.description")).toString().toLowerCase().equals(Messages.getString("Main.sheet.removedText"))) //$NON-NLS-1$
-				activeRow.getCell(get("colNum.delv.aval.status")).setCellValue(Messages.getString("Main.sheet.decommissionedText")); //$NON-NLS-1$
-			
-			setCell(workbookRow, get("colNum.wkbk.sinv.manufacturer"),	activeRow, get("colNum.delv.aval.manufacturer"));
-			setCell(workbookRow, get("colNum.wkbk.sinv.installYear"),	activeRow, get("colNum.delv.aval.installYear"));
-			setCell(workbookRow, get("colNum.wkbk.sinv.EDSL"),			activeRow, get("colNum.delv.aval.EDSL"));
-			setCell(workbookRow, get("colNum.wkbk.sinv.RSL"),			activeRow, get("colNum.delv.aval.RSL"));
-			
-			activeRow.getCell(get("colNum.delv.aval.EEOL"))
-					.setCellValue(Integer.toString(Math.round(NumberUtils.toFloat(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.sinv.RSL"))), 0))
-							+ NumberUtils.toInt(FORMATTER.formatCellValue(activeRow.getCell(get("colNum.delv.aval.inspNum"))).substring(3, 7), 0)));
+			if (workbookRow.getCell(get("colNum.wkbk.sinv.description")).toString().toLowerCase() //$NON-NLS-1$
+					.equals(Messages.getString("Main.sheet.removedText")))
+				activeRow.getCell(get("colNum.delv.aval.status")) //$NON-NLS-1$
+						.setCellValue(Messages.getString("Main.sheet.decommissionedText"));
+
+			setCell(workbookRow, get("colNum.wkbk.sinv.manufacturer"), activeRow, get("colNum.delv.aval.manufacturer"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.installYear"), activeRow, get("colNum.delv.aval.installYear"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.EDSL"), activeRow, get("colNum.delv.aval.EDSL"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.RSL"), activeRow, get("colNum.delv.aval.RSL"));
+
+			String eeol = Integer.toString(Math.round(
+					NumberUtils.toFloat(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.sinv.RSL"))), 0))
+					+ NumberUtils.toInt(FORMATTER.formatCellValue(activeRow.getCell(get("colNum.delv.aval.inspNum")))
+							.substring(3, 7), 0));
+
+			if (!eeol.equals("0"))
+				activeRow.getCell(get("colNum.delv.aval.EEOL")).setCellValue(eeol);
 		}
 
 		Iterator<Integer> it = rowsToCheck.iterator(); // Item only on workbook, not on delivarable
@@ -748,23 +777,24 @@ public class Main {
 			XSSFRow prevRow = inventorySheet.getRow(currentRow - 1);
 			XSSFRow workbookRow = workbookSheet.getRow(i);
 
-			setCell(prevRow,		get("colNum.delv.aval.inspNum"),		newRow, get("colNum.delv.aval.inspNum"));
-			setCell(prevRow,		get("colNum.delv.aval.siteID"),			newRow, get("colNum.delv.aval.siteID"));
-			setCell(workbookRow,	get("colNum.wkbk.sinv.propRecID"),		newRow, get("colNum.delv.aval.locID"));
-			setCell(workbookRow,	get("colNum.wkbk.sinv.name"),			newRow, get("colNum.delv.aval.description"));
-			setCell(workbookRow,	get("colNum.wkbk.sinv.priority"),		newRow, get("colNum.delv.aval.priority"));
-			setCell(workbookRow,	get("colNum.wkbk.sinv.manufacturer"),	newRow, get("colNum.delv.aval.manufacturer"));
-			setCell(workbookRow,	get("colNum.wkbk.sinv.installYear"),	newRow, get("colNum.delv.aval.installYear"));
-			setCell(workbookRow,	get("colNum.wkbk.sinv.EDSL"),			newRow, get("colNum.delv.aval.EDSL"));
-			setCell(workbookRow,	get("colNum.wkbk.sinv.RSL"),			newRow, get("colNum.delv.aval.RSL"));
-			setCell(workbookRow,	get("colNum.wkbk.sinv.usage"),			newRow, get("colNum.delv.aval.usage"));
+			setCell(prevRow, get("colNum.delv.aval.inspNum"), newRow, get("colNum.delv.aval.inspNum"));
+			setCell(prevRow, get("colNum.delv.aval.siteID"), newRow, get("colNum.delv.aval.siteID"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.propRecID"), newRow, get("colNum.delv.aval.locID"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.name"), newRow, get("colNum.delv.aval.description"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.priority"), newRow, get("colNum.delv.aval.priority"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.manufacturer"), newRow, get("colNum.delv.aval.manufacturer"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.installYear"), newRow, get("colNum.delv.aval.installYear"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.EDSL"), newRow, get("colNum.delv.aval.EDSL"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.RSL"), newRow, get("colNum.delv.aval.RSL"));
+			setCell(workbookRow, get("colNum.wkbk.sinv.usage"), newRow, get("colNum.delv.aval.usage"));
 
 			newRow.getCell(get("colNum.delv.aval.maximoID"))
 					.setCellValue(Integer.toString(counter++) + Messages.getString("Main.sheet.newAssetIdSuffix")); //$NON-NLS-1$
-			newRow.getCell(get("colNum.delv.aval.EEOL"))
-			.setCellValue(Integer.toString(
-					Math.round(NumberUtils.toFloat(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.sinv.RSL"))), 0))
-							+ NumberUtils.toInt(FORMATTER.formatCellValue(newRow.getCell(get("colNum.delv.aval.inspNum"))).substring(3, 7), 0)));
+			newRow.getCell(get("colNum.delv.aval.EEOL")).setCellValue(Integer.toString(Math.round(
+					NumberUtils.toFloat(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.sinv.RSL"))), 0))
+					+ NumberUtils.toInt(
+							FORMATTER.formatCellValue(newRow.getCell(get("colNum.delv.aval.inspNum"))).substring(3, 7),
+							0)));
 			newRow.getCell(get("colNum.delv.aval.status")).setCellValue(Messages.getString("Main.sheet.operatingText")); //$NON-NLS-1$
 			newRow.getCell(get("colNum.delv.aval.type")).setCellValue(Messages.getString("Main.sheet.facilitiesText")); //$NON-NLS-1$
 			newRow.getCell(get("colNum.delv.aval.inspDate")).setCellValue(INSPECTION_DATE);
@@ -773,16 +803,17 @@ public class Main {
 
 	/**
 	 * Runs deficiency data section of the program - see github readme for details
+	 * 
 	 * @throws IOException if there's an error writing to info file
 	 */
 	private static void deficiencyData() throws IOException {
 		updateInfo(InfoText.DEF_DATA);
 
 		// Copy from building validation b/c deficiency data might be empty
-		String inspNum = FORMATTER
-				.formatCellValue(deliverableBook.getSheet(getSheetName(Sheet.BUILDING)).getRow(1).getCell(get("colNum.delv.bval.inspNum")));
-		String siteID = FORMATTER
-				.formatCellValue(deliverableBook.getSheet(getSheetName(Sheet.BUILDING)).getRow(1).getCell(get("colNum.delv.bval.siteID")));
+		String inspNum = FORMATTER.formatCellValue(deliverableBook.getSheet(getSheetName(Sheet.BUILDING)).getRow(1)
+				.getCell(get("colNum.delv.bval.inspNum")));
+		String siteID = FORMATTER.formatCellValue(deliverableBook.getSheet(getSheetName(Sheet.BUILDING)).getRow(1)
+				.getCell(get("colNum.delv.bval.siteID")));
 
 		XSSFSheet defSheet = deliverableBook.getSheet(getSheetName(Sheet.NEWORDERS));
 		XSSFSheet workbookSheet = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.workItems"));
@@ -805,27 +836,32 @@ public class Main {
 
 			activeRow.getCell(get("colNum.delv.nwo.inspNum")).setCellValue(inspNum);
 			activeRow.getCell(get("colNum.delv.nwo.siteID")).setCellValue(siteID);
-			activeRow.getCell(get("colNum.delv.nwo.status")).setCellValue(Messages.getString("Main.sheet.deficiency.status"));
-			activeRow.getCell(get("colNum.delv.nwo.workType")).setCellValue(Messages.getString("Main.sheet.deficiency.UK"));
-			activeRow.getCell(get("colNum.delv.nwo.iaFunc")).setCellValue(Messages.getString("Main.sheet.deficiency.iaFunc"));
+			activeRow.getCell(get("colNum.delv.nwo.status"))
+					.setCellValue(Messages.getString("Main.sheet.deficiency.status"));
+			activeRow.getCell(get("colNum.delv.nwo.workType"))
+					.setCellValue(Messages.getString("Main.sheet.deficiency.UK"));
+			activeRow.getCell(get("colNum.delv.nwo.iaFunc"))
+					.setCellValue(Messages.getString("Main.sheet.deficiency.iaFunc"));
 			activeRow.getCell(get("colNum.delv.nwo.PCM")).setCellValue(Messages.getString("Main.sheet.deficiency.PCM"));
-			
-			setCell(workbookRow, get("colNum.wkbk.items.WIN"),		activeRow, get("colNum.delv.nwo.WIN"));
-			setCell(workbookRow, get("colNum.wkbk.items.locID"),	activeRow, get("colNum.delv.nwo.locID"));
-			setCell(workbookRow, get("colNum.wkbk.items.maxID"),	activeRow, get("colNum.delv.nwo.assetID"));
-			setCell(workbookRow, get("colNum.wkbk.items.name"),		activeRow, get("colNum.delv.nwo.description"));
-			setCell(workbookRow, get("colNum.wkbk.items.category"),	activeRow, get("colNum.delv.nwo.category"), 0, 1);
-			setCell(workbookRow, get("colNum.wkbk.items.category"),	activeRow, get("colNum.delv.nwo.rank"), 2, 3);
-			setCell(workbookRow, get("colNum.wkbk.items.type"),		activeRow, get("colNum.delv.nwo.reason"), 0, 2);
+
+			setCell(workbookRow, get("colNum.wkbk.items.WIN"), activeRow, get("colNum.delv.nwo.WIN"));
+			setCell(workbookRow, get("colNum.wkbk.items.locID"), activeRow, get("colNum.delv.nwo.locID"));
+			setCell(workbookRow, get("colNum.wkbk.items.maxID"), activeRow, get("colNum.delv.nwo.assetID"));
+			setCell(workbookRow, get("colNum.wkbk.items.name"), activeRow, get("colNum.delv.nwo.description"));
+			setCell(workbookRow, get("colNum.wkbk.items.category"), activeRow, get("colNum.delv.nwo.category"), 0, 1);
+			setCell(workbookRow, get("colNum.wkbk.items.category"), activeRow, get("colNum.delv.nwo.rank"), 2, 3);
+			setCell(workbookRow, get("colNum.wkbk.items.type"), activeRow, get("colNum.delv.nwo.reason"), 0, 2);
 
 			activeRow.getCell(get("colNum.delv.nwo.longDesc"))
-					.setCellValue(String.format("%s; %s", FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.items.problem"))),
+					.setCellValue(String.format("%s; %s",
+							FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.items.problem"))),
 							FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.items.solution")))));
 		}
 	}
 
 	/**
 	 * Runs cost data section of the program - see github readme for details
+	 * 
 	 * @throws IOException if there's an error writing to info file
 	 */
 	private static void costData() throws IOException {
@@ -844,7 +880,8 @@ public class Main {
 		for (int i = 1; i < rows; i++)
 			if (FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(0)).length() != 0
 					&& getCorrespondingRowNumber(costSheet,
-							FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(get("colNum.wkbk.items.WIN"))), get("colNum.delv.cost.plannedID")) < 0)
+							FORMATTER.formatCellValue(workbookSheet.getRow(i).getCell(get("colNum.wkbk.items.WIN"))),
+							get("colNum.delv.cost.plannedID")) < 0)
 				rowsToAdd.add(i);
 
 		Iterator<Integer> it = rowsToAdd.iterator();
@@ -858,16 +895,19 @@ public class Main {
 			activeRow.getCell(get("colNum.delv.cost.inspNum")).setCellValue(inspNum);
 			activeRow.getCell(get("colNum.delv.cost.siteID")).setCellValue(siteID);
 			activeRow.getCell(get("colNum.delv.cost.type")).setCellValue(Messages.getString("Main.sheet.cost.type"));
-			activeRow.getCell(get("colNum.delv.cost.lineType")).setCellValue(Messages.getString("Main.sheet.cost.lineType"));
-			
-			setCell(workbookRow, get("colNum.wkbk.items.WIN"),			activeRow, get("colNum.delv.cost.WIN"));
-			setCell(workbookRow, get("colNum.wkbk.items.locID"),		activeRow, get("colNum.delv.cost.locID"));
-			setCell(workbookRow, get("colNum.wkbk.items.WIN"),			activeRow, get("colNum.delv.cost.plannedID"));
-			setCell(workbookRow, get("colNum.wkbk.items.name"),			activeRow, get("colNum.delv.cost.description"));
-			
-			activeRow.getCell(get("colNum.delv.cost.totalCost")).setCellValue(formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.items.totalCost")))));
+			activeRow.getCell(get("colNum.delv.cost.lineType"))
+					.setCellValue(Messages.getString("Main.sheet.cost.lineType"));
+
+			setCell(workbookRow, get("colNum.wkbk.items.WIN"), activeRow, get("colNum.delv.cost.WIN"));
+			setCell(workbookRow, get("colNum.wkbk.items.locID"), activeRow, get("colNum.delv.cost.locID"));
+			setCell(workbookRow, get("colNum.wkbk.items.WIN"), activeRow, get("colNum.delv.cost.plannedID"));
+			setCell(workbookRow, get("colNum.wkbk.items.name"), activeRow, get("colNum.delv.cost.description"));
+
+			activeRow.getCell(get("colNum.delv.cost.totalCost")).setCellValue(
+					formatCost(FORMATTER.formatCellValue(workbookRow.getCell(get("colNum.wkbk.items.totalCost")))));
 			activeRow.getCell(get("colNum.delv.cost.quantity")).setCellValue("1");
-			activeRow.getCell(get("colNum.delv.cost.unitCost")).setCellValue(activeRow.getCell(get("colNum.delv.cost.totalCost")).getStringCellValue());
+			activeRow.getCell(get("colNum.delv.cost.unitCost"))
+					.setCellValue(activeRow.getCell(get("colNum.delv.cost.totalCost")).getStringCellValue());
 		}
 	}
 
@@ -889,16 +929,17 @@ public class Main {
 		if (readCell.getCellType() != CellType.FORMULA) {
 			String toWrite = FORMATTER.formatCellValue(readCell).replaceAll("\\$", "");
 			String oldValue = FORMATTER.formatCellValue(writeRow.getCell(writeCol));
-			
+
 			if (toWrite.equals(oldValue) || toWrite.length() == 0)
 				return;
-			
+
 			if (oldValue.length() == 0)
-				writeRow.getCell(writeCol).setCellValue(FORMATTER.formatCellValue(readCell));
+				writeRow.getCell(writeCol).setCellValue(toWrite);
 			else
-				writeToInfo.append(String.format(Messages.getString("Main.infoFile.overWriteCell"), writeRow.getSheet().getSheetName(), writeRow.getRowNum(), writeCol, oldValue, toWrite));
+				writeToInfo.append(String.format(Messages.getString("Main.infoFile.overWriteCell"),
+						writeRow.getSheet().getSheetName(), writeRow.getRowNum(), writeCol, oldValue, toWrite));
 		} else {
-			switch(readCell.getCachedFormulaResultType()) {
+			switch (readCell.getCachedFormulaResultType()) {
 			case NUMERIC:
 				writeRow.getCell(writeCol).setCellValue(readCell.getNumericCellValue());
 				break;
@@ -914,9 +955,9 @@ public class Main {
 
 	/**
 	 * Sets the specified cell on a given row to a substring of the contents of a
-	 * specified cell on another given row. NOTE: This method will not 'evaluate' 
-	 * formulas, only {@link #setCell(XSSFRow, int, XSSFRow, int) the 
-	 * non-substring method} will do so.
+	 * specified cell on another given row. NOTE: This method will not 'evaluate'
+	 * formulas, only {@link #setCell(XSSFRow, int, XSSFRow, int) the non-substring
+	 * method} will do so.
 	 * 
 	 * @param readRow    the row to read from
 	 * @param readCol    the index of cell of readRow to read from
@@ -941,10 +982,10 @@ public class Main {
 
 	/**
 	 * Sets the specified cell on a given row to the contents of a specified cell on
-	 * another given row, rounding the contents, as a number, to have no more than 
-	 * eleven characters, if isLatLon. NOTE: This method will not 'evaluate' formulas, 
-	 * only {@link #setCell(XSSFRow, int, XSSFRow, int) the non-lat-lon method} will 
-	 * do so. 
+	 * another given row, rounding the contents, as a number, to have no more than
+	 * eleven characters, if isLatLon. NOTE: This method will not 'evaluate'
+	 * formulas, only {@link #setCell(XSSFRow, int, XSSFRow, int) the non-lat-lon
+	 * method} will do so.
 	 * 
 	 * @param readRow  the row to read from
 	 * @param readCol  the index of cell of readRow to read from
@@ -960,7 +1001,7 @@ public class Main {
 		else
 			writeRow.getCell(writeCol).setCellValue(FORMATTER.formatCellValue(readRow.getCell(readCol)));
 	}
-	
+
 	/**
 	 * Gets the row from a given sheet that contains the specified String in its
 	 * cell with specified index
@@ -1180,7 +1221,7 @@ public class Main {
 	 *         rounded if it formerly had too many digits
 	 */
 	static String trimLatLon(String coord) {
-		if(coord.length() < 1)
+		if (coord.length() < 1)
 			return "";
 		BigDecimal number;
 		try {
@@ -1188,7 +1229,7 @@ public class Main {
 		} catch (NumberFormatException e) {
 			return coord;
 		}
-		
+
 		String plainString = number.toPlainString();
 		int decimalPointIndex = plainString.indexOf('.');
 		int integerPartLength = decimalPointIndex >= 0 ? decimalPointIndex : plainString.length();
@@ -1208,20 +1249,22 @@ public class Main {
 
 		return roundedString;
 	}
-	
+
 	/**
 	 * Removes a preceding '$' from a String, if present
+	 * 
 	 * @param in input string
-	 * @return the input string, unless it started with '$', in which case, the remainder of the input string
+	 * @return the input string, unless it started with '$', in which case, the
+	 *         remainder of the input string
 	 */
 	static String formatCost(String in) {
-		if(in.length() == 0)
+		if (in.length() == 0)
 			return in;
-		
-		in = in.replaceAll("\\$", "").replaceAll(",","");
-		
+
+		in = in.replaceAll("\\$", "").replaceAll(",", "");
+
 		double val = Double.parseDouble(in);
-		
+
 		return new DecimalFormat("#.00").format(val);
 	}
 }
