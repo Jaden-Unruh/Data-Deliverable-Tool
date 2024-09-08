@@ -87,6 +87,8 @@ enum Sheet {
  */
 public class Main {
 
+	// TODO always overwrite data
+	
 	/**
 	 * Converts individual XSSFCell objects into the String excel shows to users
 	 */
@@ -722,6 +724,13 @@ public class Main {
 		updateInfo(InfoText.SITE_INV);
 		XSSFSheet inventorySheet = deliverableBook.getSheet(getSheetName(Sheet.ASSET));
 		XSSFSheet workbookSheet = workbookBook.getSheet(Messages.getString("Main.sheetName.workbook.siteInventory")); //$NON-NLS-1$
+		
+		// Clear junk data in expectedlife:
+		for (int i = 1; i < inventorySheet.getPhysicalNumberOfRows(); i++) {
+			XSSFCell expLifeCell = inventorySheet.getRow(i).getCell(get("colNum.delv.aval.EDSL"));
+			if (FORMATTER.formatCellValue(expLifeCell).equals("0"))
+				expLifeCell.setCellValue("");
+		}
 
 		HashSet<Integer> rowsToCheck = new HashSet<>();
 		for (int i = 1; i < workbookSheet.getPhysicalNumberOfRows(); i++)
@@ -933,9 +942,9 @@ public class Main {
 			if (toWrite.equals(oldValue) || toWrite.length() == 0)
 				return;
 
-			if (oldValue.length() == 0)
-				writeRow.getCell(writeCol).setCellValue(toWrite);
-			else
+			writeRow.getCell(writeCol).setCellValue(toWrite);
+			
+			if (oldValue.length() != 0)
 				writeToInfo.append(String.format(Messages.getString("Main.infoFile.overWriteCell"),
 						writeRow.getSheet().getSheetName(), writeRow.getRowNum(), writeCol, oldValue, toWrite));
 		} else {
